@@ -110,10 +110,25 @@
     let ex = new Array(5);
     let ey = new Array(5);
 
+    let enemyCnt=ex.length;
+
     for (let i = 0; i < ex.length; i++) {
       ex[i] = Math.round(Math.random() * (drawingBoard.width - 20));
       ey[i] = Math.round(Math.random() * (drawingBoard.height - 20));
     }
+
+    var countDownTime = new Date();
+    countDownTime.setMinutes(countDownTime.getMinutes() + 1).getTime();
+
+    var timer = setInterval(function() {
+      var now = new Date().getTime();
+      var distance = (countDownTime - now);
+      var minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+      var seconds = Math.floor((distance % (1000 * 60)) / 1000);
+      if (distance < 0) {
+        clearInterval(x);
+      }
+    }, 1000);
 
     //주인공 크기
     const heroWidth = 10;
@@ -175,18 +190,33 @@
         if((x+heroWidth) > ex[i] && x < (ex[i]+enemyWidth) && (y+heroHeith) > ey[i] && y < (ey[i]+enemyHeith)) {
           ex[i] = Number.MAX_SAFE_INTEGER;
           ey[i] = Number.MAX_SAFE_INTEGER;
+          enemyCnt--;
         }
       }
       
+    }
+
+    function counter() {
+        drawingPen.fillStyle = 'black';
+        drawingPen.font = '10px sans-serf';
+        drawingPen.fillText(`RED no ${enemyCnt}`, 550, 20);
+    }
+
+    function drawTimer(params) {
+      drawingPen.fillStyle = 'black';
+      drawingPen.font = '10px sans-serf';
+      drawingPen.fillText(`${minutes}:${seconds} 초`, (canvas.width/2), 20);
     }
 
     // 화면에 출력하기
     function draw() {
       drawingPen.fillText(`x: ${x} y: ${y}`, 10, 20); //1_4 : 캔버스 왼쪽 상단에 텍스트 출력
       drawingPen.clearRect(0, 0, canvas.width, canvas.height);  //화면지우기
+      drawTimer();
       drawHero(); // 주인공출력함수호출
-      enemy1();
+      enemy1(); // 적 출력함수 호출
       collision1(); //적 충돌함수 호출
+      counter();  // 적 카운트함수 호출
       move_limit(); //1_4 : 주인공 이동 제한 함수호출
       drawCoordinate(); //1_4 : 텍스트 출력 함수호출
     }
