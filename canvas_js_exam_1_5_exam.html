@@ -56,7 +56,7 @@
     /* 1_5 : 화면이 작을 때 (스마트폰 등에서 보인다면 아래 코드동작)
        화면의 폭이 최대 768픽셀보다 이하이면 아래 css동작함 아니면 위 PC용 CSS @media (min-width: 769px) 동작함
        최근 스마트폰의 해상도는 PC보다도 좋은 경우가 많은데 768픽셀보다 작으면 스마트폰이라니?
-        이유 : 스마트폰의 ㅁ불리적인 해상도는 더 크지만, 화면을 작게 보이도록 하기 위해 **디바이스 픽셀 비율(DPR, divicePixelRatio)**을 사용함
+        이유 : 스마트폰의 물리적인 해상도는 더 크지만, 화면을 작게 보이도록 하기 위해 **디바이스 픽셀 비율(DPR, divicePixelRatio)**을 사용함
        아이폰13의 가로해상도가 1170픽셀인데 CSS픽셀로는 1170/3=390픽셀임
        현재 기기로 보아도 768 CSS픽셀이면 모든 스마트폰에서 접속하는 것으로 판단함 */
 
@@ -117,18 +117,32 @@
       ey[i] = Math.round(Math.random() * (drawingBoard.height - 20));
     }
 
-    var countDownTime = new Date();
-    countDownTime.setMinutes(countDownTime.getMinutes() + 1).getTime();
+   function startCountdown(ms, onTick, onEnd) {
+    const start=performance.now();
+    const end=start+ms;
+    let tId=0;
 
-    var timer = setInterval(function() {
-      var now = new Date().getTime();
-      var distance = (countDownTime - now);
-      var minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
-      var seconds = Math.floor((distance % (1000 * 60)) / 1000);
-      if (distance < 0) {
-        clearInterval(x);
+    function step() {
+      const now = performance.now();
+      const remaining = Math.max(0, end - now); //reamining에 0과 end-now중 큰 값을 넣는다.(음수가 변수에 들어가는 경우를 없에서 보정을 함)
+
+      const totalSeconds = Math.ceil(remaining / 1000);
+      const minutes = Math.floor(totalSeconds / 60);
+      const second = totalSeconds % 60;
+      onTick?.(minutes, second);
+
+      if (remaining === 0) {
+        onEnd?.();
+        return;
       }
-    }, 1000);
+
+      const nextDelay = Math.min(1000, Math.max(0, 1000 - (now % 1000)));
+      tId = setInterval(step, nextDelay);
+    }
+
+    step();
+    return () => clearInterval(tId);
+   }
 
     //주인공 크기
     const heroWidth = 10;
@@ -202,7 +216,7 @@
         drawingPen.fillText(`RED no ${enemyCnt}`, 550, 20);
     }
 
-    function drawTimer(params) {
+    function drawTimer() {
       drawingPen.fillStyle = 'black';
       drawingPen.font = '10px sans-serf';
       drawingPen.fillText(`${minutes}:${seconds} 초`, (canvas.width/2), 20);
@@ -212,7 +226,7 @@
     function draw() {
       drawingPen.fillText(`x: ${x} y: ${y}`, 10, 20); //1_4 : 캔버스 왼쪽 상단에 텍스트 출력
       drawingPen.clearRect(0, 0, canvas.width, canvas.height);  //화면지우기
-      drawTimer();
+//      drawTimer();  // 타이머출력함수호출
       drawHero(); // 주인공출력함수호출
       enemy1(); // 적 출력함수 호출
       collision1(); //적 충돌함수 호출
@@ -222,6 +236,7 @@
     }
 
     setInterval(draw, 16);  // 60FPS
+//    startCountdown(60_000, (m, s) => console.log(`${m}:${s.toString().padStart(2, "0")}`), () => console.log("타임아웃!"));
 
     document.addEventListener('keydown', (e) => {
     
