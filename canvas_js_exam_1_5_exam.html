@@ -117,6 +117,9 @@
       ey[i] = Math.round(Math.random() * (drawingBoard.height - 20));
     }
 
+    let timerMinutes = 0;
+    let timerSeconds = 0;
+
    function startCountdown(ms, onTick, onEnd) {
     const start=performance.now();
     const end=start+ms;
@@ -219,24 +222,31 @@
     function drawTimer() {
       drawingPen.fillStyle = 'black';
       drawingPen.font = '10px sans-serf';
-      drawingPen.fillText(`${minutes}:${seconds} 초`, (canvas.width/2), 20);
+      drawingPen.fillText(`${timerMinutes}:${timerSeconds.toString().padStart(2, "0")} 초`, (canvas.width/2), 20);
     }
 
     // 화면에 출력하기
     function draw() {
       drawingPen.fillText(`x: ${x} y: ${y}`, 10, 20); //1_4 : 캔버스 왼쪽 상단에 텍스트 출력
-      drawingPen.clearRect(0, 0, canvas.width, canvas.height);  //화면지우기
-//      drawTimer();  // 타이머출력함수호출
+      drawingPen.clearRect(0, 0, canvas.width, canvas.height);  //화면지우기/      drawTimer();  // 타이머출력함수호출
       drawHero(); // 주인공출력함수호출
       enemy1(); // 적 출력함수 호출
       collision1(); //적 충돌함수 호출
       counter();  // 적 카운트함수 호출
       move_limit(); //1_4 : 주인공 이동 제한 함수호출
       drawCoordinate(); //1_4 : 텍스트 출력 함수호출
+      drawTimer();
     }
 
     setInterval(draw, 16);  // 60FPS
-//    startCountdown(60_000, (m, s) => console.log(`${m}:${s.toString().padStart(2, "0")}`), () => console.log("타임아웃!"));
+    startCountdown(
+      60_000,
+      (m, s) => {
+        timerMinutes = m;
+        timerSeconds = s;
+      },
+      () => {alert("타임아웃!");}
+    );
 
     document.addEventListener('keydown', (e) => {
     
