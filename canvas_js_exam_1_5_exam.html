@@ -72,6 +72,36 @@
         display: none; /* 1_5 : pc-guide를 스마트폰 접속시 숨김 */
       }
     }
+
+    /* === OverLay_UI === */
+    .overlay {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.5);
+      justify-content: center;
+      align-items: center;
+    }
+
+    .overlay-content {
+      background: white;
+      padding: 30px;
+      border-radius: 10px;
+      text-align: center;
+      min-width: 250px;
+    }
+
+    .overlay-content h2 { margin-bottom: 20px;}
+    .overlay-content button {
+      margin-top: 20px;
+      padding: 10px 20px;
+      font-size: 16px;
+      cursor: pointer;
+    }
+
   </style>
 </head>
 <body>
@@ -92,6 +122,15 @@
     스마트폰에서 접속 시 보이는 버튼으로 이동하세요.
   </div>
 
+  <!-- OverLay_UI -->
+   <div class="overlay" id="overlay">
+    <div class="overlay-content">
+      <h2 id="overlayTitle">Game Over</h2>
+      <p id="overlayMessage"></p>
+      <button id="restartBtn">재시작</button>
+    </div>
+   </div>
+
   <script>
     // 캔버스 요소 J5 변수만들기
     const drawingBoard = document.getElementById('canvas');
@@ -99,8 +138,12 @@
     const drawingPen = drawingBoard.getContext('2d');
 
     // 캔버스 크기를 CSS와 맞춰줌 (중요!)
-    drawingBoard.width = drawingBoard.clientWidth;
-    drawingBoard.height = drawingBoard.clientHeight;
+    // 아래처럼 하면 PC는 600x600으로 설정되고 스마트폰은 360x360으로 화면계산된 나중에 필요하면 참고사용
+    // drawingBoard.width = drawingBoard.clientWidth;
+    // drawingBoard.height = drawingBoard.clientHeight;
+    // 캔버스 내부 해상도는 무조건 600x600 고정(PC, 스마트폰 모두)
+    drawingBoard.width = 600;
+    drawingBoard.height = 600;
 
     // 주인공 위치(화면 왼쪽 하단)
     let x = 20;
@@ -119,6 +162,8 @@
 
     let timerMinutes = 0;
     let timerSeconds = 0;
+    let startTime = Date.now();
+    let stopCountdown = null;
 
    function startCountdown(ms, onTick, onEnd) {
     const start=performance.now();
@@ -128,7 +173,6 @@
     function step() {
       const now = performance.now();
       const remaining = Math.max(0, end - now); //reamining에 0과 end-now중 큰 값을 넣는다.(음수가 변수에 들어가는 경우를 없에서 보정을 함)
-
       const totalSeconds = Math.ceil(remaining / 1000);
       const minutes = Math.floor(totalSeconds / 60);
       const second = totalSeconds % 60;
@@ -225,8 +269,30 @@
       drawingPen.fillText(`${timerMinutes}:${timerSeconds.toString().padStart(2, "0")} 초`, (canvas.width/2), 20);
     }
 
+    // === OverLay 관련 ===
+    const overlay = document.getElementById("overlay");
+    const overlayTitle = document.getElementById("overlayTitle");
+    const overlayMessage = document.getElementById("overlayMessage");
+    const restartBtn = document.getElementById("restartBtn");
+    restartBtn.addEventListener("click", () => location.reload());
+
+    function gameOverOverlay(type, value = "") {
+      if (type === "over") {
+        overlayTitle.textContent = "게임오버";
+        overlayMessage.textContent = "시간이 다 되었습니다!";
+      }else if (type === "record") {
+        overlayTitle.textContent = "🎉 클리어!";
+        overlayMessage.textContent = `기록: ${value}초`;
+      }
+      overlay.style.display = "flex";
+    }
+
+    let isGameOver = false;
+
     // 화면에 출력하기
     function draw() {
+      if (isGameOver) return; // 게임 끝났으면 draw 루프 중단
+
       drawingPen.fillText(`x: ${x} y: ${y}`, 10, 20); //1_4 : 캔버스 왼쪽 상단에 텍스트 출력
       drawingPen.clearRect(0, 0, canvas.width, canvas.height);  //화면지우기/      drawTimer();  // 타이머출력함수호출
       drawHero(); // 주인공출력함수호출
@@ -236,15 +302,27 @@
       move_limit(); //1_4 : 주인공 이동 제한 함수호출
       drawCoordinate(); //1_4 : 텍스트 출력 함수호출
       drawTimer();  //타이머 출력함수 호출
+
+      // 조건 체크
+      if (enemyCnt === 0) {
+        let elapsed = ((Date.now() - startTime)/1000).toFixed(1);
+        stopCountdown?.();
+        isGameOver = true;
+        gameOverOverlay("record", elapsed);
+      }
     }
-    startCountdown(
+
+    stopCountdown = startCountdown(
       60_000,
-      (m, s) => {
-        timerMinutes = m;
-        timerSeconds = s;
-      },
-      () => {alert("타임아웃!");}
+      (m, s) => { timerMinutes = m; timerSeconds = s; },
+      () => { 
+        if (!isGameOver) {              // 이미 게임 끝났으면 다시 안 띄움
+          isGameOver = true;
+          gameOverOverlay("over"); 
+        }
+      }
     );
+
     setInterval(draw, 16);  // 60FPS
     
 
