@@ -105,7 +105,7 @@
   </style>
 </head>
 <body>
-  <!-- 애니메시연 화면 만들기 -->
+  <!-- 애니메이션 화면 만들기 -->
   <canvas id="canvas"></canvas>
 
   <!-- 1_5 : 애니메이션 화면 만들기 : 스마트폰에서 접속 할 때만 controls이 보이게됨 -->
@@ -162,8 +162,10 @@
 
     let timerMinutes = 0;
     let timerSeconds = 0;
+    let timerCenti = 0; //  1/100초
     let startTime = Date.now();
     let stopCountdown = null;
+    let isGameOver = false;
 
    function startCountdown(ms, onTick, onEnd) {
     const start=performance.now();
@@ -173,18 +175,19 @@
     function step() {
       const now = performance.now();
       const remaining = Math.max(0, end - now); //reamining에 0과 end-now중 큰 값을 넣는다.(음수가 변수에 들어가는 경우를 없에서 보정을 함)
-      const totalSeconds = Math.ceil(remaining / 1000);
-      const minutes = Math.floor(totalSeconds / 60);
-      const second = totalSeconds % 60;
-      onTick?.(minutes, second);
+      
+      const totalCenti = Math.floor(remaining / 10); // 1/100초 단위
+      const minutes = Math.floor(totalCenti / 6000); // 60*100
+      const seconds = Math.floor((totalCenti % 6000) / 100);
+      const centi = totalCenti % 100;
 
-      if (remaining === 0) {
+      onTick?.(minutes, seconds, centi);
+
+      if (remaining <= 0) {
         onEnd?.();
         return;
       }
-
-      const nextDelay = Math.min(1000, Math.max(0, 1000 - (now % 1000)));
-      tId = setTimeout(step, nextDelay);
+      tId = setTimeout(step, 10);
     }
 
     step();
@@ -265,8 +268,10 @@
 
     function drawTimer() {
       drawingPen.fillStyle = 'black';
-      drawingPen.font = '10px sans-serf';
-      drawingPen.fillText(`${timerMinutes}:${timerSeconds.toString().padStart(2, "0")} 초`, (canvas.width/2), 20);
+      drawingPen.font = '20px sans-serf';
+      drawingPen.fillText(`${timerMinutes}:${timerSeconds.toString().padStart(2,"0")}:${timerCenti.toString().padStart(2,"0")}`,
+        (canvas.width/2)-40, 20
+      );
     }
 
     // === OverLay 관련 ===
@@ -287,7 +292,7 @@
       overlay.style.display = "flex";
     }
 
-    let isGameOver = false;
+    
 
     // 화면에 출력하기
     function draw() {
@@ -304,8 +309,8 @@
       drawTimer();  //타이머 출력함수 호출
 
       // 조건 체크
-      if (enemyCnt === 0) {
-        let elapsed = ((Date.now() - startTime)/1000).toFixed(1);
+      if (enemyCnt === 0 && !isGameOver) {
+        let elapsed = ((Date.now() - startTime)/1000).toFixed(2);
         stopCountdown?.();
         isGameOver = true;
         gameOverOverlay("record", elapsed);
@@ -314,7 +319,7 @@
 
     stopCountdown = startCountdown(
       60_000,
-      (m, s) => { timerMinutes = m; timerSeconds = s; },
+      (m, s, c) => { timerMinutes = m; timerSeconds = s; timerCenti = c; },
       () => { 
         if (!isGameOver) {              // 이미 게임 끝났으면 다시 안 띄움
           isGameOver = true;
