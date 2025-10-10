@@ -231,6 +231,8 @@
     function moveDown() {y = y + moveAmount;}
     function moveUp() {y = y - moveAmount;}
 
+    arrayCheck(ex, ey);
+
     // 1_4 : 주인공 이동제한
     function move_limit() {
       if(x<0) {//왼쪽 이동제한
@@ -260,20 +262,19 @@
       drawingPen.fillRect(x, y, heroWidth, heroHeith);
     }
 
-    function arrayCheck() {
-
-
-      /*let tempX, tempY;
-      for (let i = 0; i < ex.length; i++) {
+    function arrayCheck(arrayX, arrayY) {
+      let tempX, tempY;
+      for (let i = 0; i < arrayX.length; i++) {
         tempX = Math.round(Math.random() * (drawingBoard.width - 20));
         tempY = Math.round(Math.random() * (drawingBoard.height - 20));
-        if (tempX != ex[i] || tempY != ey[i]) {
-          ex[i] = tempX;
-          ey[i] = tempY;
-        }else {
+        if (((tempX+enemyWidth) >= arrayX[i] && tempX <= (arrayX[i]+enemyWidth)) || ((tempY+enemyHeith) >= arrayY[i] && tempY <= (arrayY[i]+enemyHeith))) {
           continue;
+        }else {
+          arrayX[i] = tempX;
+          arrayY[i] = tempY;
         }
-      }*/
+      }
+      return;
     }
 
     // 적 출력함수
