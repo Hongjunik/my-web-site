@@ -169,14 +169,14 @@
     drawingBoard.height = 600;
 
     // 주인공 위치(화면 왼쪽 하단)
-    let x = 20;
-    let y = (drawingBoard.height - 30); //570
+    let heroX = 20;
+    let heroY = (drawingBoard.height - 30); //570
 
     //적 위치(하면 가운데)
-    let ex = new Array(10);
-    let ey = new Array(10);
+    let enemyX = new Array(10);
+    let enemyY = new Array(10);
 
-    let enemyCnt=ex.length;
+    let enemyCnt=enemyX.length;
 
     
 
@@ -220,32 +220,31 @@
 
     //적 크기
     const enemyWidth = 20;
-    const enemyHeith = 20;
+    const enemyHeight = 20;
 
     // 주인공 이동속도
     const moveAmount = 5;
 
     // 주인공 이동함수
-    function moveRight() {x = x + moveAmount;}
-    function moveLeft() {x = x - moveAmount;}
-    function moveDown() {y = y + moveAmount;}
-    function moveUp() {y = y - moveAmount;}
+    function moveRight() {heroX = heroX + moveAmount;}
+    function moveLeft() {heroX = heroX - moveAmount;}
+    function moveDown() {heroY = heroY + moveAmount;}
+    function moveUp() {heroY = heroY - moveAmount;}
 
-    arrayCheck(ex, ey);
 
     // 1_4 : 주인공 이동제한
     function move_limit() {
-      if(x<0) {//왼쪽 이동제한
-        x = 0;
+      if(heroX<0) {//왼쪽 이동제한
+        heroX = 0;
       }
-      if(x>=drawingBoard.width-10) {//오른쪽 이동제한
-        x = (drawingBoard.width-10);
+      if(heroX>=drawingBoard.width-10) {//오른쪽 이동제한
+        heroX = (drawingBoard.width-10);
       }
-      if(y<0) {//위쪽 이동제한
-        y=0;
+      if(heroY<0) {//위쪽 이동제한
+        heroY=0;
       }
-      if(y>=drawingBoard.height-10) {//아래쪽 이동제한
-        y=(drawingBoard.height-10);
+      if(heroY>=drawingBoard.height-10) {//아래쪽 이동제한
+        heroY=(drawingBoard.height-10);
       }
     }
 
@@ -253,25 +252,26 @@
     function drawCoordinate() {
       drawingPen.fillStyle = 'black';
       drawingPen.font = '10px sans-serf';
-      drawingPen.fillText(`x: ${x} y: ${y}`, 10, 20);
+      drawingPen.fillText(`X: ${heroX} Y: ${heroY}`, 10, 20);
     }
 
     // 주인공 출력함수
     function drawHero() {
       drawingPen.fillStyle = 'black';
-      drawingPen.fillRect(x, y, heroWidth, heroHeith);
+      drawingPen.fillRect(heroX, heroY, heroWidth, heroHeith);
     }
 
-    function arrayCheck(arrayX, arrayY) {
+    //  적 중복확인 함수
+    function duplication() {
       let tempX, tempY;
-      for (let i = 0; i < arrayX.length; i++) {
+      for (let i = 0; i < enemyX.length; i++) {
         tempX = Math.round(Math.random() * (drawingBoard.width - 20));
         tempY = Math.round(Math.random() * (drawingBoard.height - 20));
-        if (((tempX+enemyWidth) >= arrayX[i] && tempX <= (arrayX[i]+enemyWidth)) || ((tempY+enemyHeith) >= arrayY[i] && tempY <= (arrayY[i]+enemyHeith))) {
+        if (collision1(tempX, tempY, (enemyWidth+5), (enemyHeight+5), enemyX[i], enemyY[i], (enemyWidth+5), (enemyHeight+5))) {
           continue;
         }else {
-          arrayX[i] = tempX;
-          arrayY[i] = tempY;
+          enemyX[i] = tempX;
+          enemyY[i] = tempY;
         }
       }
       return;
@@ -279,22 +279,30 @@
 
     // 적 출력함수
     function enemy1() {
-      for (let i = 0; i < ex.length; i++) {
+      for (let i = 0; i < enemyX.length; i++) {
         drawingPen.fillStyle = 'red';
-        drawingPen.fillRect(ex[i], ey[i], enemyWidth, enemyHeith);
+        drawingPen.fillRect(enemyX[i], enemyY[i], enemyWidth, enemyHeight);
       }
     }
 
-    // 적 충돌함수
-    function collision1() {
-      for (let i = 0; i < ex.length; i++) {
-        if((x+heroWidth) > ex[i] && x < (ex[i]+enemyWidth) && (y+heroHeith) > ey[i] && y < (ey[i]+enemyHeith)) {
-          ex[i] = Number.MAX_SAFE_INTEGER;
-          ey[i] = Number.MAX_SAFE_INTEGER;
+    // 충돌 감지 함수
+    function collision1(aX, aY, aWidth, aHeith, bX, bY, bWidth, bHeith) {
+      if(((aX+aWidth) > bX && aX < (bX+bWidth)) && ((aY+aHeith) > bY && aY < (bY+bHeith))) {
+        return true;
+      }else{
+        return false;
+      }
+    }
+
+    //  적 충돌 함수
+    function enmeycollision() {
+      for (let i = 0; i < enemyX.length; i++) {
+        if(collision1(heroX, heroY, heroWidth, heroWidth, enemyX[i], enemyY[i], enemyWidth, enemyHeight)) {
+          enemyX[i] = Number.MAX_SAFE_INTEGER
+          enemyY[i] = Number.MAX_SAFE_INTEGER
           enemyCnt--;
         }
       }
-      
     }
 
     function counter() {
@@ -354,11 +362,11 @@
     function draw() {
       if (isGameOver) return; // 게임 끝났으면 draw 루프 중단
 
-      drawingPen.fillText(`x: ${x} y: ${y}`, 10, 20); //1_4 : 캔버스 왼쪽 상단에 텍스트 출력
+      drawingPen.fillText(`X: ${heroX} Y: ${heroY}`, 10, 20); //1_4 : 캔버스 왼쪽 상단에 텍스트 출력
       drawingPen.clearRect(0, 0, canvas.width, canvas.height);  //화면지우기/      drawTimer();  // 타이머출력함수호출
       drawHero(); // 주인공출력함수호출
       enemy1(); // 적 출력함수 호출
-      collision1(); //적 충돌함수 호출
+      enmeycollision(); //적 충돌함수 호출
       counter();  // 적 카운트함수 호출
       move_limit(); //1_4 : 주인공 이동 제한 함수호출
       drawCoordinate(); //1_4 : 텍스트 출력 함수호출
@@ -389,6 +397,7 @@
       }
     );
 
+    duplication();
     setInterval(draw, 16);  // 60FPS
     
     const setBtnHod = (key, isDown) => {
