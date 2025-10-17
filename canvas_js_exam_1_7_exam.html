@@ -261,21 +261,47 @@
       drawingPen.fillRect(heroX, heroY, heroWidth, heroHeith);
     }
 
-    //  적 중복확인 함수
+    // 중복확인 함수
+    // 추천: 새 배열에 순차적으로 배치 후 원본 교체
     function duplication() {
-      let tempX, tempY;
+      const newX = [];
+      const newY = [];
+      const maxAttempts = 1000;
+
       for (let i = 0; i < enemyX.length; i++) {
-        tempX = Math.round(Math.random() * (drawingBoard.width - 20));
-        tempY = Math.round(Math.random() * (drawingBoard.height - 20));
-        if (collision1(tempX, tempY, (enemyWidth+5), (enemyHeight+5), enemyX[i], enemyY[i], (enemyWidth+5), (enemyHeight+5))) {
-          continue;
-        }else {
-          enemyX[i] = tempX;
-          enemyY[i] = tempY;
-        }
+        let tempX, tempY, overlap, attempts = 0;
+
+        do {
+          overlap = false;
+          tempX = Math.round(Math.random() * (drawingBoard.width - (enemyWidth + 5)));
+          tempY = Math.round(Math.random() * (drawingBoard.height - (enemyHeight + 5)));
+
+          for (let j = 0; j < newX.length; j++) {
+            if (collision1(tempX, tempY, enemyWidth + 5, enemyHeight + 5,
+                       newX[j], newY[j], enemyWidth + 5, enemyHeight + 5)) {
+              overlap = true;
+              break;
+            }
+          }
+
+          attempts++;
+          if (attempts > maxAttempts) {
+            console.warn(`enemy ${i}: 위치를 찾지 못했습니다.`);
+            break;
+          }
+        } while (overlap);
+
+        newX.push(tempX);
+        newY.push(tempY);
       }
-      return;
+
+      // 기존 배열에 덮어쓰기
+      for (let i = 0; i < enemyX.length; i++) {
+        enemyX[i] = newX[i];
+        enemyY[i] = newY[i];
+      }
     }
+
 
     // 적 출력함수
     function enemy1() {
