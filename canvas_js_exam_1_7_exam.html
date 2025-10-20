@@ -93,6 +93,37 @@
     }
 
     /* === OverLay_UI === */
+
+    .startoverlay{
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: #333;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .startoverlay-content {
+      background: white;
+      padding: 50px;
+      border-radius: 10px;
+      text-align: center;
+      min-width: 300px;
+    }
+
+    .startoverlay-content h1 { margin-bottom: 35px; }
+    .startoverlay-content button {
+      margin-top: 20px;
+      padding: 10px 20px;
+      font-size: 24px;
+      cursor: pointer;
+    }
+
+
+
     .overlay {
       display: none;
       position: fixed;
@@ -146,13 +177,21 @@
   </div>
 
   <!-- OverLay_UI -->
-   <div class="overlay" id="overlay">
+  <div class="startoverlay" id="startoverlay">
+    <div class="startoverlay-content" id="startoverlay-content">
+      <h1 id="startoverlayTitle">술래잡기 게임</h1>
+      <p id="startoverlayMessage"></p>
+      <button id="startBtn">게임 시작!</button>
+    </div>
+  </div>
+
+  <div class="overlay" id="overlay">
     <div class="overlay-content">
       <h2 id="overlayTitle">Game Over</h2>
       <p id="overlayMessage"></p>
       <button id="restartBtn">재시작</button>
     </div>
-   </div>
+  </div>
 
   <script>
     // 캔버스 요소 J5 변수만들기
@@ -173,10 +212,10 @@
     let heroY = (drawingBoard.height - 30); //570
 
     //적 위치(하면 가운데)
-    let enemyX = new Array(10);
-    let enemyY = new Array(10);
+    let enemyX = new Array(15);
+    let enemyY = new Array(15);
 
-    let enemyCnt=enemyX.length;
+    let enemyCnt=(enemyX.length-5);
 
     
 
@@ -262,57 +301,58 @@
     }
 
     // 중복확인 함수
-    // 추천: 새 배열에 순차적으로 배치 후 원본 교체
-    function duplication() {
-      const newX = [];
-      const newY = [];
-      const maxAttempts = 1000;
+    // 많이 쓰이는 표준형: 좌표를 랜덤 생성 후 중복시 다시 시도
+    function non_overlapArrayFill() {
+      const maxAttempts = 500;
 
       for (let i = 0; i < enemyX.length; i++) {
-        let tempX, tempY, overlap, attempts = 0;
+        let attempts = 0;
+        let valid = false;
 
-        do {
-          overlap = false;
-          tempX = Math.round(Math.random() * (drawingBoard.width - (enemyWidth + 5)));
-          tempY = Math.round(Math.random() * (drawingBoard.height - (enemyHeight + 5)));
+        while (!valid && attempts < maxAttempts) {
+          const tempX = Math.floor(Math.random() * (drawingBoard.width - enemyWidth));
+          const tempY = Math.floor(Math.random() * ((drawingBoard.height - enemyHeight) - 15 + 1))+15;
+          valid = true;
 
-          for (let j = 0; j < newX.length; j++) {
-            if (collision1(tempX, tempY, enemyWidth + 5, enemyHeight + 5,
-                       newX[j], newY[j], enemyWidth + 5, enemyHeight + 5)) {
-              overlap = true;
+          for (let j = 0; j < i; j++) {
+            if (collisionCheck(tempX, tempY, enemyWidth + 5, enemyHeight + 5,
+                enemyX[j], enemyY[j], enemyWidth + 5, enemyHeight + 5)) {
+              valid = false;
               break;
             }
           }
 
-          attempts++;
-          if (attempts > maxAttempts) {
-            console.warn(`enemy ${i}: 위치를 찾지 못했습니다.`);
-            break;
+          if (valid) {
+            enemyX[i] = tempX;
+            enemyY[i] = tempY;
           }
-        } while (overlap);
 
-        newX.push(tempX);
-        newY.push(tempY);
-      }
+          attempts++;
+        }
 
-      // 기존 배열에 덮어쓰기
-      for (let i = 0; i < enemyX.length; i++) {
-        enemyX[i] = newX[i];
-        enemyY[i] = newY[i];
+        if (attempts >= maxAttempts) {
+          console.warn(`오류가 발생했습니다. 게임을 재시작합니다.`);
+        }
       }
     }
 
-
     // 적 출력함수
     function enemy1() {
-      for (let i = 0; i < enemyX.length; i++) {
+      for (let i = 0; i < (enemyX.length-5); i++) {
         drawingPen.fillStyle = 'red';
         drawingPen.fillRect(enemyX[i], enemyY[i], enemyWidth, enemyHeight);
       }
     }
 
+    function enemy2() {
+      for (let i = 10; i <= enemyX.length; i++) {
+        drawingPen.fillStyle = 'blue';
+        drawingPen.fillRect(enemyX[i], enemyY[i], enemyWidth, enemyHeight);
+      }
+    }
+
     // 충돌 감지 함수
-    function collision1(aX, aY, aWidth, aHeith, bX, bY, bWidth, bHeith) {
+    function collisionCheck(aX, aY, aWidth, aHeith, bX, bY, bWidth, bHeith) {
       if(((aX+aWidth) > bX && aX < (bX+bWidth)) && ((aY+aHeith) > bY && aY < (bY+bHeith))) {
         return true;
       }else{
@@ -321,12 +361,21 @@
     }
 
     //  적 충돌 함수
-    function enmeycollision() {
-      for (let i = 0; i < enemyX.length; i++) {
-        if(collision1(heroX, heroY, heroWidth, heroWidth, enemyX[i], enemyY[i], enemyWidth, enemyHeight)) {
+    function collision1() {
+      for (let i = 0; i < (enemyX.length-5); i++) {
+        if(collisionCheck(heroX, heroY, heroWidth, heroWidth, enemyX[i], enemyY[i], enemyWidth, enemyHeight)) {
           enemyX[i] = Number.MAX_SAFE_INTEGER
           enemyY[i] = Number.MAX_SAFE_INTEGER
           enemyCnt--;
+        }
+      }
+    }
+
+    function collision2() {
+      for (let i = 10; i <= enemyX.length; i++) {
+        if(collisionCheck(heroX, heroY, heroWidth, heroWidth, enemyX[i], enemyY[i], enemyWidth, enemyHeight)) {
+          enemyCnt = 10;
+          non_overlapArrayFill();
         }
       }
     }
@@ -382,6 +431,19 @@
       overlay.style.display = "flex";
     }
 
+    const startoverlay = document.getElementById("startoverlay");
+    const startoverlayTitle = document.getElementById("startoverlayTitle");
+    const startoverlayMessage = document.getElementById("startoverlayMessage");
+    const startBtn = document.getElementById("startBtn");
+    
+
+    function gameStartOverlay(){
+      startoverlayTitle.textContent = "술래잡기 게임";
+      startoverlayMessage.textContent = "파란색 적을 피해 빨간색 적을 모두 잡으세요!";
+      startoverlay.style.display = "flex";
+      startBtn.addEventListener("click", () => startoverlay.style.display = "none", non_overlapArrayFill(), setInterval(draw, 16)) // 60FPS);
+    }
+
     
 
     // 화면에 출력하기
@@ -392,7 +454,9 @@
       drawingPen.clearRect(0, 0, canvas.width, canvas.height);  //화면지우기/      drawTimer();  // 타이머출력함수호출
       drawHero(); // 주인공출력함수호출
       enemy1(); // 적 출력함수 호출
-      enmeycollision(); //적 충돌함수 호출
+      enemy2();
+      collision1(); //적 충돌함수 호출
+      collision2();
       counter();  // 적 카운트함수 호출
       move_limit(); //1_4 : 주인공 이동 제한 함수호출
       drawCoordinate(); //1_4 : 텍스트 출력 함수호출
@@ -423,8 +487,7 @@
       }
     );
 
-    duplication();
-    setInterval(draw, 16);  // 60FPS
+    gameStartOverlay();
     
     const setBtnHod = (key, isDown) => {
       keys[key] = isDown;
