@@ -186,8 +186,8 @@
     drawingBoard.height = 600;
 
     // 주인공 위치(화면 왼쪽 하단)
-    let x = 20;
-    let y = (drawingBoard.height - 30); //570
+    let x = (drawingBoard.width - 10) / 2;
+    let y = (drawingBoard.height - 10) / 2; //570
     const heroSize = 10;  //  ★1_8 : 주인공 크기
 
     //  ★1_8 : 빨간색 사각형 목적지 위치
@@ -238,6 +238,7 @@
       if(gameStarted && (x+10) > redBox.x && x < (redBox.x + redBox.size) && (y+20) > redBox.y && y < (redBox.y + redBox.size)) {
         gameStarted = false;  //  ★1_8 : ★ 충돌 발생 → 게임 멈춤
         stopTime = (Date.now() - startTime) / 1000; //  ★1_8 : 충돌 시점까지의 경과 시간을 초 단위로 계산해 저장
+        //  ★1_8 ㅣ 메시지 박스로 결과 및 아이디 입력 안내 출력
         showMessage(`충돌! 경과 시간: ${stopTime.toFixed(2)}초\n저장 아이디((영어+숫자) 5~15이내)를 입력하세요`);
         return true;  //  ★1_8 : 충돌했음을 알림 true 변환
       }
@@ -247,20 +248,70 @@
     //  ★1_8 : 메시지 박스 표시
     function showMessage(text) {
       msgText.innerText = text; //  ★1_8 : 메시지 박스 안에 전달된 text 텍스트 내용을 표시
-      msgBox.style.display = `block`;
-      userIdInput.value = ``;
-      userIdInput.focus();
+      msgBox.style.display = `block`; //  ★1_8 : 숨겨져 있던 메시지 박스를 화면에 보이도록 변경
+      userIdInput.value = ``; //  ★1_8 : 아이디 입력창을 비워서 초기화
+      userIdInput.focus();  //  ★1_8 : 아이디 입력창에 자동으로 커서(focus)를 줌
     }
 
+    //  ★1_8 : 저장 버튼 클릭
+    saveBtn.addEventListener(`click`, () => {
+      const val = userIdInput.value.trim(); //  ★1_8 : 입력창 값 가져와서 앞뒤 공백 제거해서 val에 저장
 
+      //  ★1_8 : 욕성 모듈 로드/바인딩 확인
+      //  ★1_8 : 욕설 필터 함수(containsSwearWord)가 전역(window)에 준비되어 있는지 확인
+      //  ★1_8 : - ESM으로 가져온 뒤 window.containsSwearWord = containsSwearWord; 바인딩이 안 되었거나
+      //  ★1_8 : - 외부 스크립트 로드 실패(네트워크/차단/URL 오타) 시 함수가 존재하지 않을 수 있음
+      if (typeof window.containsSwearWord !== `function`) {
+        alert(`욕설 필터 모듈을 불러오지 못했습니다. (ESM import 확인)`);
+        //  ★1_8 : 콘솔에 상세 원인 힌트 남기기(개발자용)
+        //  ★1_8 : 1) <script type="module"> import 문이 있는지
+        //  ★1_8 : 2) import 후 window.containsSwearWord = containsSwearWord; 바인딩 했는지
+        //  ★1_8 : 3) CDN 경로/브랜치/파일명이 정확한지(Network 탭에서 200인지) 확인
+        console.error(`[swear] containsSwearWord no ready`);
+        return;
+      }
 
-    //적 위치(하면 가운데)
-    let ex = (drawingBoard.width - 20) /2;
-    let ey = (drawingBoard.height - 20) /2;
+      //  ★1_8 : 영어+숫자 포함, 5~15자의 정규식 패턴 : 즉 영어+숫자만 입력해야하고 길이는 5~15자 입력해야함
+      //  ★1_8 : 정규식 표현은 어렵다 Gpt에게 질문하고 어렵다면 그냥 사용하자^^
+      const re = /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z0-9]{5,15}$/;
+      //  ★1_8 : val 아이디에 영어 욕설이 포함되어 있으면 입력금지
+      //  ★1_8 : containsSwearWord(val, "eng") : end영어검사 함수 욕설이 있으면 함수가 true값을 가지게 된다.
+      if(containsSwearWord(val, "eng")) {
+        alert(`사용할 수 없는 단어가 포함되어 있습니다.`);
+        userIdInput.focus();  //  ★1_8 : 입력창에 다시 커서 이동
+        return; //  ★1_8 : 함수 종료함 : 아래 내용을 실행하지 않고 종료됨
+      }
+      if(!re.test(val)) { //  ★1_8 : 정규식 조건을 만족하지 않으면
+        alert(`아이디는 영어와 숫자를 반드시 포함한 5~15자여야 합니다.`);
+        userIdInput.focus();  //  ★1_8 : 압력창에 커서 이동
+        return; //  ★1_8 : 함수 종료함 : 아래 내용을 실행하지 않고 종료됨
+      }
+      alert(`입력한 아이디는 ${val}입니다.`); //  ★1_8 : 정상 입력 시 입력된 아이디 출력
+      msgBox.style.display = `none`;  //  ★1_8 : 메시지 박스 닫기
+      resetGame();  //  ★1_8 : 게임 초기화
+    })
 
-    //적 크기
-    const enemyWidth = 20;
-    const enemyHeith = 20;
+    //  ★1_8 : 취소 버튼 클릭
+    cancelBtn.addEventListener('click', () => {
+      msgBox.style.display = 'none';
+      resetGame();  //  ★1_8 : 게임 초기화
+    })
+
+    //  ★1_8 : Start 버튼 클릭
+    startBtn.addEventListener('click', () => {
+      gameStarted = true; //  ★1_8 : 게임 시작 상태로 변경
+      startTime = Date.now(); //  ★1_8 : 시작 시간 기록
+      startBtn.style.display = 'none';  //  ★1_8 : 시작 버튼 숨김
+    })
+
+    //  ★1_8 : 게임 초기화 함수
+    function resetGame() {
+      gameStarted = false;  //  ★1_8 : 게임 중 아님으로 설정
+      stopTime = null;  //  ★1_8 : 멈춘 시간 초기화
+      startBtn.style.display = 'block'; //  ★1_8 : 시작 버튼 다시 보이도록 설정
+      x = (drawingBoard.width - 10) / 2;  //  ★1_8 : 플레이어 x 좌표를 캔버스 중앙에 위치
+      y = (drawingBoard.height - 10) / 2; //  ★1_8 : 플레이어 y 좌표를 캔버스 중앙에 위치
+    }
 
     // 주인공 이동속도
     const moveAmount = 5;
@@ -298,7 +349,7 @@
     // 주인공 출력함수
     function drawHero() {
       drawingPen.fillStyle = 'black';
-      drawingPen.fillRect(x, y, heroWidth, heroHeith);
+      drawingPen.fillRect(x, y, 10, 10);
     }
 
     // 적 출력함수
@@ -355,20 +406,26 @@
 
     // 화면에 출력하기
     function draw() {
-      drawingPen.fillText(`x: ${x} y: ${y}`, 10, 20); //1_4 : 캔버스 왼쪽 상단에 텍스트 출력
       drawingPen.clearRect(0, 0, canvas.width, canvas.height);  //화면지우기
       drawHero(); // 주인공출력함수호출
-      collision1(); //적 충돌함수 호출
+
       move_limit(); //1_4 : 주인공 이동 제한 함수호출
       drawCoordinate(); //1_4 : 텍스트 출력 함수호출
 
+      drawRedBox();
+      drawTimer();
+
+      checkCollision();
+      
       //  ★1_6 : DDD
       //  ★1_6 : 키가 눌력있는 동안 계속 이동(키보드 인식 속도 향상으로 이동을 부드럽게 변경)
       //  ★1_6 : 왼쪽 방향키를 선택해서 keys.ArrowLeft 값이 true일때 처리
-      if (keys.ArrowLeft) moveLeft();
-      if (keys.ArrowRight) moveRight(); //  ★1_6
-      if (keys.ArrowUp) moveUp(); //  ★1_6
-      if (keys.ArrowDown) moveDown(); //  ★1_6
+      if(gameStarted && stopTime === null) {
+        if (keys.ArrowLeft) moveLeft();
+        if (keys.ArrowRight) moveRight(); //  ★1_6
+        if (keys.ArrowUp) moveUp(); //  ★1_6
+        if (keys.ArrowDown) moveDown(); //  ★1_6
+      }
     }
 
     //  ★★★1_6 : 방향키보드 선택시 실행되는 순서★★★
