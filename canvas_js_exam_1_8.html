@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" /> <!-- 페이지 언어 인코딩 형식 -->
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/> <!-- 화면크기에 따라 보여지는 크기 맞추기 -->
-  <title>Web Animation(canvas_js_css)[1단원-7]</title>
+  <title>Web Animation(canvas_js_css)[1단원-8]</title>
   <style>
     /* 페이지 전체 설정 */
     body {
@@ -73,6 +73,25 @@
 
     .controls button:active {
       background-color: #555;
+    }
+
+    /* ★1_8 : 시작버튼 */
+    #startBtn {
+      position: absolute;
+      top: 30%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: #45a049;  /* 초록색 버튼 */
+      color: white;
+      font-size: 24px;
+      font-weight: bold;
+      padding: 30px 60px;
+      border-radius: 10px;
+      cursor: pointer;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+      text-align: center;
+      transition: all 0.2s ease;
+      user-select: none;  /* 텍스트 드래그 */
     }
 
     /* ★1_8 : 시작버튼에 마우스를 올리면 */
@@ -289,20 +308,20 @@
       alert(`입력한 아이디는 ${val}입니다.`); //  ★1_8 : 정상 입력 시 입력된 아이디 출력
       msgBox.style.display = `none`;  //  ★1_8 : 메시지 박스 닫기
       resetGame();  //  ★1_8 : 게임 초기화
-    })
+    });
 
     //  ★1_8 : 취소 버튼 클릭
     cancelBtn.addEventListener('click', () => {
       msgBox.style.display = 'none';
       resetGame();  //  ★1_8 : 게임 초기화
-    })
+    });
 
     //  ★1_8 : Start 버튼 클릭
     startBtn.addEventListener('click', () => {
       gameStarted = true; //  ★1_8 : 게임 시작 상태로 변경
       startTime = Date.now(); //  ★1_8 : 시작 시간 기록
       startBtn.style.display = 'none';  //  ★1_8 : 시작 버튼 숨김
-    })
+    });
 
     //  ★1_8 : 게임 초기화 함수
     function resetGame() {
@@ -352,21 +371,6 @@
       drawingPen.fillRect(x, y, 10, 10);
     }
 
-    // 적 출력함수
-    function enemy1() {
-      drawingPen.fillStyle = 'red';
-      drawingPen.fillRect(ex, ey, enemyWidth, enemyHeith)
-    }
-
-    // 적 충돌함수
-    function collision1() {
-      if((x+heroWidth) > ex && x < (ex+enemyWidth) && (y+heroHeith) > ey && y < (ey+enemyHeith)) {
-
-      }else {
-        enemy1(); // 적 출력함수호출
-      }
-    }
-
     //  ★1_6 : AAA
     //  ★1_6 : 방향키 눌림 상태 객체선언
     //  ★1_6 : const 값이 변하지 않고 속성(key)과 값(value)을 기억시킴
@@ -412,10 +416,10 @@
       move_limit(); //1_4 : 주인공 이동 제한 함수호출
       drawCoordinate(); //1_4 : 텍스트 출력 함수호출
 
-      drawRedBox();
-      drawTimer();
+      drawRedBox(); //  ★1_8 : 빨간 박수 출력
+      drawTimer();  //  ★1_8 : 시간 출력
 
-      checkCollision();
+      checkCollision(); //  ★1_8 : 주인공과 빨간색 상자 충돌 체크 함수호출
       
       //  ★1_6 : DDD
       //  ★1_6 : 키가 눌력있는 동안 계속 이동(키보드 인식 속도 향상으로 이동을 부드럽게 변경)
