@@ -170,6 +170,10 @@
       cursor: pointer;
     }
 
+    #overlayMessage {
+      white-space: pre-line;
+    }
+
   </style>
 </head>
 <body>
@@ -207,9 +211,18 @@
     <div class="overlay-content">
       <h2 id="overlayTitle">Game Over</h2>
       <p id="overlayMessage"></p>
-      <button id="restartBtn">재시작</button>
+      <input type="text" id="userId" placeholder="(영어+숫자) 5~15자이내">
+      <br>
+      <button id="saveBtn">저장</button>
+      <button id="cancelBtn">취소</button>
     </div>
   </div>
+
+  <script type="module">
+    import {containsSwearWord} from "https://cdn.jsdelivr.net/gh/bc-develop2000/swear_words@main/swear_words.js";
+    window.containsSwearWord = containsSwearWord;
+    console.log("[swear] module loaded, sample:", containsSwearWord("fuck", "eng"));
+  </script>
 
   <script>
     // 캔버스 요소 J5 변수만들기
@@ -350,6 +363,7 @@
 
         if (attempts >= maxAttempts) {
           console.warn(`오류가 발생했습니다. 게임을 재시작합니다.`);
+          location.reload();
         }
       }
     }
@@ -435,8 +449,10 @@
     const overlay = document.getElementById("overlay");
     const overlayTitle = document.getElementById("overlayTitle");
     const overlayMessage = document.getElementById("overlayMessage");
-    const restartBtn = document.getElementById("restartBtn");
-    restartBtn.addEventListener("click", () => location.reload());
+    const userIdInput = document.getElementById("userId");
+    const saveBtn = document.getElementById("saveBtn");
+    const cancelBtn = document.getElementById("cancelBtn");
+    
 
     function gameOverOverlay(type, value = "") {
       if (type === "over") {
@@ -444,10 +460,35 @@
         overlayMessage.textContent = "시간이 다 되었습니다!";
       }else if (type === "record") {
         overlayTitle.textContent = "🎉 클리어!";
-        overlayMessage.textContent = `기록: ${value}초`;
+        overlayMessage.textContent = `기록: ${value}초\n저장 아이디((영어+숫자) 5~15자이내)를 입력하세요.`;
       }
       overlay.style.display = "flex";
     }
+
+    saveBtn.addEventListener("click", () => {
+      const val = userIdInput.value.trim();
+      if (typeof window.containsSwearWord !== `function`) {
+        alert(`욕설 필터 모듈을 불러오지 못했습니다. (ESM import 확인)`);
+        console.error(`[swear] containsSwearWord no ready`);
+        return;
+      }
+      const re = /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z0-9]{5,15}$/;
+
+      if (containsSwearWord(val, "eng")) {
+        alert("사용할 수 없는 단어가 포함되어 있습니다.");
+        userIdInput.focus();
+        return;
+      }
+      if(!re.test(val)) {
+        alert("아이디는 영어와 숫자를 반드시 포함한 5~15자여야 합니다.");
+        userIdInput.focus();
+        return;
+      }
+      alert(`입력한 아이디는 ${val}입니다.`);
+      location.reload();
+    });
+
+    cancelBtn.addEventListener("click", () => location.reload());
 
     const startoverlay = document.getElementById("startoverlay");
     const startoverlayTitle = document.getElementById("startoverlayTitle");
