@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" /> <!-- 페이지 언어 인코딩 형식 -->
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/> <!-- 화면크기에 따라 보여지는 크기 맞추기 -->
-  <title>Web Animation(canvas_js_css)[1단원-8]</title>
+  <title>Web Animation(canvas_js_css)[1단원-11]</title>
   <style>
     /* 페이지 전체 설정 */
     body {
@@ -147,13 +147,13 @@
     // Import the functions you need from the SDKs you need
 
     //  ★1_10 : Firebase의 기본 기능(앱 초기화 기능)을 불러옴 : Firebase를 내 웨뷰ㅔ이지 안에서 사용할 수 있게 준비하는 기능
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-app.js";
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-app.js";
     //  ★1_10 : Firestore(파이어스토어)라는 데이터 저장소 관련 기능들을 불러옴
     //  ★1_10 :    - getFirestore : 데이터베이스 연결 기능
     //  ★1_10 :    - collection   : 데이터를 모아두는 '폴더' 역할 (ex. "scores" 폴더)
     //  ★1_10 :    - addDoc       : 실제 데이터를 폴더 안에 추가하는 기능 (ex. 점수 저장)
     //  ★1_10 :    -serverTimestamp : 저장할 때 서버의 현재 시간을 자동으로 기록하는 기능
-    import { getFirestore } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-firestore.js";
+    import { getFirestore } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-firestore.js";
     // TODO: Add SDKs for Firebase products that you want to use
     // https://firebase.google.com/docs/web/setup#available-libraries
 
@@ -395,7 +395,7 @@
         //  ★1_10 : → addDoc: 폴더에 "문서(데이터)"를 새로 추가하는 함수
         //  ★1_10 : → serverTimestamp: 저장할 때 서버 사간을 자동으로 기록
         const { collection, addDoc, serverTimestamp } = await import(
-          "https://www.gstatic.com/firebasejs/12.6.0/firebase-firestore.js"
+          "https://www.gstatic.com/firebasejs/12.7.0/firebase-firestore.js"
         );
 
         //  ★1_10 : ★★★Friesote에 데이터 추가 (addDoc 사용)★★★
@@ -413,10 +413,9 @@
         alert(`저장되었습니다!\nID: ${val}\n기록: ${record}초`);
         msgBox.style.display = 'none';
 
-        //  ★1_10 : 필요하면 현재 결과를 쿼리스트림으로 넘길 수도 있음 (옵셕)
-        //  ★1_10 : location.href = `rankpage.html?lastId=${encodeURIComponent(val)}&lastTime=${record}`;
-        //  ★1_10 : 성공시 오른쪽 페이지 이동예정 location.href = "rankpage.html";
-        alert("저장 성공 : 다음 단원에서는 성공시 rankpage.html 페이지로 이동을 학습합니다.");
+        //  ★1_11 : 필요하면 현재 결과를 쿼리스트림으로 넘길 수도 있음 (옵션)
+        //  ★1_11 : 성공시 오른쪽 페이지 이동예정
+        location.href="canvas_js_exam_1_11_rankpage.html";
       } catch (err) {
         //  ★1_10 : try 안에서 오류가 생기면 catch로 이동
         //  ★1_10 : → 예를 들어 인터넷이 끊겼거나 Firestore 권한 설정이 잘못된 경우
