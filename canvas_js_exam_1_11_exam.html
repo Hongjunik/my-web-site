@@ -106,6 +106,7 @@
       background: #333;
       justify-content: center;
       align-items: center;
+      z-index: 1000;
     }
 
     .startoverlay-content {
@@ -152,6 +153,7 @@
       background: rgba(0,0,0,0.5);
       justify-content: center;
       align-items: center;
+      z-index: 1100;
     }
 
     .overlay-content {
@@ -280,6 +282,7 @@
     let timerCenti = 0; //  1/100초
     let startTime = Date.now();
     let stopCountdown = null;
+    let drawLoopId = null;
     let isGameOver = false;
 
     let elapsed = 0;
@@ -532,12 +535,13 @@
         });
 
         alert(`저장되었습니다!\nID: ${val}\n기록: ${elapsed}초`);
-        alert("저장 성공 : 다음 단원에서는 성공시 rankpage.html 페이지로 이동을 학습합니다.");
+        location.href="canvas_js_exam_1_11_exam_rankpage.html"
+        // alert("저장 성공 : 다음 단원에서는 성공시 rankpage.html 페이지로 이동을 학습합니다.");
       } catch(err) {
         console.error(err);
         alert("저장 중 오류가 발생했습니다. 콘솔을 확인하세요.");
       }
-      location.reload();
+      // location.reload();
     });
 
     cancelBtn.addEventListener("click", () => location.reload());
@@ -548,12 +552,37 @@
     const startBtn = document.getElementById("startBtn");
     
 
-    function gameStartOverlay(){
-      startoverlayTitle.textContent = "술래잡기 게임";
-      startoverlayMessage.textContent = "파란색 적을 피해 빨간색 적을 모두 잡으세요!";
-      startoverlay.style.display = "flex";
-      startBtn.addEventListener("click", () => startoverlay.style.display = "none", non_overlapArrayFill(), setInterval(draw, 16)) // 60FPS);
-    }
+    function gameStartOverlay() {
+        startoverlayTitle.textContent = "술래잡기 게임";
+        startoverlayMessage.textContent = "파란색 적을 피해 빨간색 적을 모두 잡으세요!";
+        startoverlay.style.display = "flex";
+
+        startBtn.addEventListener("click", () => {
+          startoverlay.style.display = "none";
+
+          isGameOver = false;
+          enemyCnt = enemyX.length - 5;
+          startTime = Date.now();
+
+          non_overlapArrayFill();
+
+          if (drawLoopId) clearInterval(drawLoopId);
+          drawLoopId = setInterval(draw, 16);
+
+          if (stopCountdown) stopCountdown();
+          stopCountdown = startCountdown(
+            60_000,
+            (m, s, c) => { timerMinutes = m; timerSeconds = s; timerCenti = c; },
+            () => {
+              if (!isGameOver) {              // 이미 게임 끝났으면 다시 안 띄움
+                isGameOver = true;
+                gameOverOverlay("over");
+              }
+            }
+          );
+        }, {once: true});
+      }
+                                   
 
     
 
@@ -586,17 +615,6 @@
         gameOverOverlay("record", elapsed);
       }
     }
-
-    stopCountdown = startCountdown(
-      60_000,
-      (m, s, c) => { timerMinutes = m; timerSeconds = s; timerCenti = c; },
-      () => { 
-        if (!isGameOver) {              // 이미 게임 끝났으면 다시 안 띄움
-          isGameOver = true;
-          gameOverOverlay("over"); 
-        }
-      }
-    );
 
     gameStartOverlay();
     
