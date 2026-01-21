@@ -97,49 +97,75 @@
     /* === OverLay_UI === */
 
     .startoverlay{
-      display: none;
       position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: #333;
-      justify-content: center;
+      inset: 0;
+      display: flex;
       align-items: center;
+      justify-content: center;
+      background: rgba(0, 0, 0, 0.65);
       z-index: 1000;
     }
 
     .startoverlay-content {
+      width: min(520px, 92vw);
+      padding: 60px 32px;
+      border-radius: 16px;
       background: white;
-      padding: 50px;
-      border-radius: 10px;
+      color: black;
+      box-shadow: 0 12px 30px rgba(0,0,0,0.35);
+
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
       text-align: center;
-      min-width: 300px;
     }
 
-    .startoverlay-content h1 { margin-bottom: 35px; }
+    #startoverlayTitle{
+      font-size: 28px;
+      font-weight: 800;
+      margin: 0;
+    }
+
+    #startoverlayMessage{
+      font-size: 20px;
+      margin: 0 0 8px 0;
+      opacity: 0.9;
+    }
+
     .startoverlay-content button {
-      margin-top: 20px;
-      background: #34a049;
-      color: white;
-      font-size: 24px;
-      padding: 10px 20px;
-      border-radius: 10px;
-      border: none;
       cursor: pointer;
-      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
-      text-align: center;
-      transition: all 0.1s ease;
       user-select: none;
+      transition: transform 0.1s ease;
     }
 
     .startoverlay-content button:hover {
-      background: #34a049;
       transform: scale(1.05);
     }
 
     .startoverlay-content button:active {
       transform: scale(0.95);
+    }
+
+    .startBtn{
+      background: #34a049;
+      color: #fff;
+      font-size: 24px;
+      font-weight: 800;
+      padding: 12px 20px;
+      border-radius: 10px;
+      border: none;
+      box-shadow: 0 6px 14px rgba(0,0,0,0.30);
+    }
+
+    .rankpageBtn{
+      background: #2b6cb0;
+      color: #fff;
+      font-size: 20px;
+      font-weight: 800;
+      padding: 12px 20px;
+      border-radius: 10px;
+      border: none;
+      box-shadow: 0 6px 14px rgba(0,0,0,0.28);
     }
 
 
@@ -228,9 +254,10 @@
   <!-- OverLay_UI -->
   <div class="startoverlay" id="startoverlay">
     <div class="startoverlay-content" id="startoverlay-content">
-      <h1 id="startoverlayTitle">⏱술래잡기 게임⏱</h1>
+      <div id="startoverlayTitle">⏱술래잡기 게임⏱</div>
       <p id="startoverlayMessage"></p>
-      <button id="startBtn">게임 시작!</button>
+      <button class="startBtn" id="startBtn">게임 시작!</button>
+      <button class="rankpageBtn" id="rankpageBtn">랭킹 보기</button>
     </div>
   </div>
 
@@ -535,7 +562,7 @@
         });
 
         alert(`저장되었습니다!\nID: ${val}\n기록: ${elapsed}초`);
-        location.href="canvas_js_exam_1_11_exam_rankpage.html"
+        location.href="canvas_js_exam_1_12_exam_rankpage.html"
         // alert("저장 성공 : 다음 단원에서는 성공시 rankpage.html 페이지로 이동을 학습합니다.");
       } catch(err) {
         console.error(err);
@@ -550,6 +577,7 @@
     const startoverlayTitle = document.getElementById("startoverlayTitle");
     const startoverlayMessage = document.getElementById("startoverlayMessage");
     const startBtn = document.getElementById("startBtn");
+    const rankpageBtn = document.getElementById("rankpageBtn");
     
 
     function gameStartOverlay() {
@@ -581,10 +609,9 @@
             }
           );
         }, {once: true});
-      }
-                                   
 
-    
+        rankpageBtn.addEventListener("click", () => { location.href="canvas_js_exam_1_12_exam_rankpage.html" })
+      }
 
     // 화면에 출력하기
     function draw() {
