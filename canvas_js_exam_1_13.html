@@ -19,6 +19,75 @@
       margin: 0 auto;
     }
 
+    /* ★1_13: 상단 사운드 토글 바 스타일 추가 */
+    /*
+      ★1_13 설명(상세);
+      -.sound-toggle-wrap: 페이지 상단에 고정되는(Sticky) 사운드 스위치 영역입니다.
+       스크롤을 내려도 항상 화면 상단(top:0)에 붙어 있으며, 가벼운 하얀 배경과
+       얇은 구분선으로 콘텐츠와 시각적으로 분리합니다.
+       중앙 정렬을 위해 flex를 사용하고, 살짝 반투명하게 만들어 캔버스와 자연스럽게 어울립니다.
+      -.sound-toggle: 내부 컨텐츠 컨테이너로, 스피커 이모지(상태), 텍스트(사운드),
+      스위치(checkbox+slider), 상태 텍스트(ON/OFF)가 가로로 정렬됩니다.
+      -.switch + .slider: 실제 체크박스는 숨기고, 슬라이더 모양으로 토글 스위치를 표현합니다.
+       체크 상대에 따라 배경색(#4CAF50)과 동그라미 위치가 바뀝니다.
+    */
+    .sound-toggle-wrap{
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      display: flex;
+      justify-content: center;
+      background: rgba(255, 255, 255, 0.9);
+      border-bottom: 1px solid #e5e5e5;
+      padding: 6px 8px;
+    }
+    .sound-toggle{
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 700;
+      color: #222;
+      user-select: none;
+    }
+    .switch{
+      position: relative;
+      display: inline-block;
+      width: 54px;
+      height: 28px;
+    }
+    .switch input {
+      display: none;
+    }
+    .slider{
+      position: absolute;
+      cursor: pointer;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: #ccc;
+      transition: .2s;
+      border-radius: 28px;
+    }
+    .slider::before{
+      position: absolute;
+      content: "";
+      height: 22px;
+      width: 22px;
+      left: 3px;
+      top: 3px;
+      background: white;
+      transition: .2s;
+      border-radius: 50%;
+      box-shadow: 0 1px 3px   rgba(0, 0,0,0.2);
+    }
+    input:checked + .slider{
+      background-color: #4CAF50;
+    }
+    input:checked + .slider::before{
+      transform: translateX(26px);
+    }
+
     /* 1_5 : PC 안내 문구 기본은 숨김 */
     .pc-guide {
       display: none; /* 1_5 : 화면에 보이지 않게함 */
@@ -243,7 +312,7 @@
 
   <div class="sound-toggle-wrap">
     <div class="sound-toggle">
-      <span id="soundStateEmoje">🔊</span>
+      <span id="soundStateEmoji">🔊</span>
       <label class="switch" title="사운드 On/Off">
         <input type="checkbox" id="soundToggle" checked />
         <span class="slider"></span>
@@ -337,9 +406,42 @@
     let stopTime = null;  //  ★1_8 : 충돌 시 멈춘 시간
 
     let soundEnabled = true;
-    const soundToggle =document.getElementById('soundToggle');
+    const soundToggle = document.getElementById('soundToggle');
     const soundStateEmoji = document.getElementById('soundStateEmoji');
     const soundStateText = document.getElementById('soundStateText');
+
+    const bgm = new Audio('back_snd1.mp3');
+    bgm.loop = true;
+    bgm.preload = 'auto';
+
+    const hitSound  = new Audio('effect_snd1.mp3');
+    hitSound.preload = 'auto';
+
+    const endSound = new Audio('back_snd2.mp3');
+    endSound.preload = 'auto';
+
+    function applySoundState() {
+      bgm.muted = hitSound.muted = endSound.muted = !soundEnabled;
+      soundStateEmoji.textContent = soundEnabled ? '🔊' : '🔈';
+      soundStateText.textContent = soundEnabled ? 'ON' : 'OFF';
+      if(!soundEnabled){ bgm.pause(); }
+      else if(gameStarted && stopTime === null){
+        try{ bgm.play(); }catch(e){}
+      }
+    }
+    soundToggle.addEventListener('change',                ()=>{
+      soundEnabled = soundToggle.checked;
+      applySoundState();
+    });
+    applySoundState();
+
+    function safePlay(Audio){
+      if(!soundEnabled) return;
+      try{Audio.currentTime = 0; Audio.play();}catch(e){}
+    }
+    function stopAllsfx(){
+      [hitSound, endSound].forEach(a=>{ a.pause(); a.currentTime = 0; });
+    }
 
     //  ★1_8 : 시간 출력 함수
     function drawTimer() {
@@ -380,8 +482,29 @@
       if(gameStarted && (x+10) > redBox.x && x < (redBox.x + redBox.size) && (y+20) > redBox.y && y < (redBox.y + redBox.size)) {
         gameStarted = false;  //  ★1_8 : ★ 충돌 발생 → 게임 멈춤
         stopTime = (Date.now() - startTime) / 1000; //  ★1_8 : 충돌 시점까지의 경과 시간을 초 단위로 계산해 저장
-        //  ★1_8 ㅣ 메시지 박스로 결과 및 아이디 입력 안내 출력
-        showMessage(`충돌! 경과 시간: ${stopTime.toFixed(2)}초\n저장 아이디((영어+숫자) 5~15이내)를 입력하세요`);
+        
+        
+        
+        
+        
+        stopAllsfx();
+        if(soundEnabled){
+          hitSound.onended = () => {
+            endSound.onended = null;
+            bgm.pause();
+            safePlay(endSound);
+            showMessage(`충돌! 경과 시간: ${stopTime.toFixed(2)}초\n저장 아이디((영어+숫자) 5~15이내)를 입력하세요`);
+          };
+          safePlay(hitSound);
+
+          setTimeout(()=>{
+            if(msgBox.style.display !== 'block'){
+              showMessage(`충돌! 경과 시간: ${stopTime.toFixed(2)}초\n저장 아이디((영어+숫자) 5~15이내)를 입력하세요`);
+            }
+          }, 600);
+        }else{
+          showMessage(`충돌! 경과 시간: ${stopTime.toFixed(2)}초\n저장 아이디((영어+숫자) 5~15이내)를 입력하세요`);
+        }
         return true;  //  ★1_8 : 충돌했음을 알림 true 변환
       }
       return false; //  ★1_8 : 충돌이 없으면 false 변환
@@ -421,7 +544,7 @@
       const re = /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z0-9]{5,15}$/;
       //  ★1_8 : val 아이디에 영어 욕설이 포함되어 있으면 입력금지
       //  ★1_8 : containsSwearWord(val, "eng") : end영어검사 함수 욕설이 있으면 함수가 true값을 가지게 된다.
-      if(containsSwearWord(val, "eng")) {
+      if(window.containsSwearWord(val, "eng")) {
         alert(`사용할 수 없는 단어가 포함되어 있습니다.`);
         userIdInput.focus();  //  ★1_8 : 입력창에 다시 커서 이동
         return; //  ★1_8 : 함수 종료함 : 아래 내용을 실행하지 않고 종료됨
@@ -481,7 +604,7 @@
 
         //  ★1_11 : 필요하면 현재 결과를 쿼리스트림으로 넘길 수도 있음 (옵션)
         //  ★1_11 : 성공시 오른쪽 페이지 이동예정
-        location.href="canvas_js_exam_1_11_rankpage.html";
+        location.href="canvas_js_exam_1_13_rankpage.html";
       } catch (err) {
         //  ★1_10 : try 안에서 오류가 생기면 catch로 이동
         //  ★1_10 : → 예를 들어 인터넷이 끊겼거나 Firestore 권한 설정이 잘못된 경우
@@ -514,6 +637,9 @@
       startBtn.style.display = 'block'; //  ★1_8 : 시작 버튼 다시 보이도록 설정
       x = (drawingBoard.width - 10) / 2;  //  ★1_8 : 플레이어 x 좌표를 캔버스 중앙에 위치
       y = (drawingBoard.height - 10) / 2; //  ★1_8 : 플레이어 y 좌표를 캔버스 중앙에 위치
+
+      bgm.pause();
+      stopAllsfx();
     }
 
     // 주인공 이동속도
@@ -531,15 +657,9 @@
       if(x<0) {//왼쪽 이동제한
         x = 0;
       }
-      if(x>=590) {//오른쪽 이동제한
-        x = 590;
-      }
-      if(y<0) {//위쪽 이동제한
-        y=0;
-      }
-      if(y>=590) {//아래쪽 이동제한
-        y=590;
-      }
+      if (y < 0) y = 0;
+      if (x > drawingBoard.width - heroSize) x = drawingBoard.width - heroSize;
+      if (y > drawingBoard.height - heroSize) y = drawingBoard.height - heroSize;
     }
 
     //1_4 : 캔버스 왼쪽 상단에 텍스트 출력함수
@@ -653,7 +773,7 @@
 
     // ★1_12: 랭킹보기 버튼 클릭 시 rankpage로 이동
     document.getElementById('btnRank').addEventListener('click', function() {
-      location.href = "canvas_js_exam_1_12_rankpage.html";  // ★1_12: 랭킹페이지 이동
+      location.href = "canvas_js_exam_1_13_rankpage.html";  // ★1_12: 랭킹페이지 이동
     })
 
     // ★1_7 : 모바일 화면에서 버튼을 손으로 선택시 함수 설행순서
