@@ -31,45 +31,45 @@
       -.switch + .slider: 실제 체크박스는 숨기고, 슬라이더 모양으로 토글 스위치를 표현합니다.
        체크 상대에 따라 배경색(#4CAF50)과 동그라미 위치가 바뀝니다.
     */
-    .sound-toggle-wrap{
-      position: sticky;
-      top: 0;
-      z-index: 50;
-      display: flex;
-      justify-content: center;
-      background: rgba(255, 255, 255, 0.9);
-      border-bottom: 1px solid #e5e5e5;
-      padding: 6px 8px;
+    .sound-toggle-wrap{ /* ★1_13 */
+      position: sticky; /* ★1_13: 스크롤 시 상단 고정 */
+      top: 0;           /* ★1_13: 스크롤해도 항상 화면 맨 위에 붙도록 하는 설정 */
+      z-index: 50;      /* ★1_13: 캔버스/버튼보다 위에 오도록 */
+      display: flex;    /* ★1_13 */
+      justify-content: center;  /* ★1_13: 내부 요소 가로 중앙 정렬 */
+      background: rgba(255, 255, 255, 0.9); /* ★1_13: 약간 투명한 흰 배경 */
+      border-bottom: 1px solid #e5e5e5; /* ★1_13: 아래쪽 얇은 경계선 */
+      padding: 6px 8px;                   /* ★1_13: 상하좌우 여백 */
     }
-    .sound-toggle{
+    .sound-toggle{  /* ★1_13 */
       display: inline-flex;
       align-items: center;
       gap: 10px;
       font-weight: 700;
       color: #222;
-      user-select: none;
+      user-select: none;  /* ★1_13: 드래그 방지 */
     }
-    .switch{
+    .switch{  /* ★1_13 */
       position: relative;
       display: inline-block;
       width: 54px;
       height: 28px;
     }
-    .switch input {
+    .switch input { /* ★1_13: 실제 체크박스는 숨김(대신 .slider로 시각화) */
       display: none;
     }
-    .slider{
+    .slider{  /* ★1_13 */
       position: absolute;
       cursor: pointer;
       top: 0;
       left: 0;
       right: 0;
       bottom: 0;
-      background-color: #ccc;
-      transition: .2s;
-      border-radius: 28px;
+      background-color: #ccc; /* 기본 회색 배경 */
+      transition: .2s;          /* 스무스 애니메이션 */
+      border-radius: 28px;      /* 캡슐형 모양 */
     }
-    .slider::before{
+    .slider::before{  /* ★1_13: 동그란 손잡이 */
       position: absolute;
       content: "";
       height: 22px;
@@ -77,14 +77,14 @@
       left: 3px;
       top: 3px;
       background: white;
-      transition: .2s;
+      transition: .2s;    /* 슬라이드 애니메이션 */
       border-radius: 50%;
       box-shadow: 0 1px 3px   rgba(0, 0,0,0.2);
     }
-    input:checked + .slider{
+    input:checked + .slider{  /* ★1_13: 체크되면 초록 배경 */
       background-color: #4CAF50;
     }
-    input:checked + .slider::before{
+    input:checked + .slider::before{  /* ★1_13: 체크되면 손잡이가 오른쪽으로 이동 */
       transform: translateX(26px);
     }
 
@@ -309,15 +309,22 @@
   </script>
 </head>
 <body>
-
-  <div class="sound-toggle-wrap">
-    <div class="sound-toggle">
-      <span id="soundStateEmoji">🔊</span>
-      <label class="switch" title="사운드 On/Off">
-        <input type="checkbox" id="soundToggle" checked />
-        <span class="slider"></span>
+  <!-- ★1_13: 상단 사운드 ON/OFF 토글 UI 추가 (기본 ON) -->
+  <!--
+    - 사용자는 이 스위치로 전체 사운드 허용/차단을 제어합니다.
+    - 브라우저 자동재생 정책 때문에, 오디오는 사용자 제츠셔(예: Start 클릭) 이후에만 재생됩니다.
+    - 스위치 상태는 자바스크립트의 soundEnabled와 동기화되며,
+      배경음(bgm), 충돌음(hitSound), 종료음(endSound)의 muted 속성에 반영됩니다.
+    - OFF일 때는 즉시 bgm.pause() 처리로 배경음을 멈추고, ON + 게임진행 중이면 재개됩니다.
+  -->
+  <div class="sound-toggle-wrap"> <!-- ★1_13 -->
+    <div class="sound-toggle">  <!-- ★1_13 -->
+      <span id="soundStateEmoji">🔊</span>  <!-- ★1_13: 상태 이모지 (ON=🔊 / OFF=🔈) -->
+      <label class="switch" title="사운드 On/Off">  <!-- ★1_13 -->
+        <input type="checkbox" id="soundToggle" checked />  <!-- ★1_13: 기본 ON -->
+        <span class="slider"></span>  <!-- ★1_13: 시각적 토글 슬라이더 -->
       </label>
-      <span id="soundStateText">ON</span>
+      <span id="soundStateText">ON</span> <!-- ★1_13: 텍스트 상태 표시 (ON/OFF) -->
     </div>
   </div>
 
@@ -405,42 +412,61 @@
     let elapsedTime = 0;  //  ★1_8 : 경과 시간
     let stopTime = null;  //  ★1_8 : 충돌 시 멈춘 시간
 
-    let soundEnabled = true;
-    const soundToggle = document.getElementById('soundToggle');
-    const soundStateEmoji = document.getElementById('soundStateEmoji');
-    const soundStateText = document.getElementById('soundStateText');
+    /* ★1_13: 사운드 상태/객체 준비 */
+    /*
+      ★1_13 설명(상세):
+      - soundEnabled: 전체 사운드 허용 여부를 기억하는 플래그(기본 true=ON)
+      - soundToggle, soundStatEmoji, soundStateText: UI 요소의 연결되어 상태를 즉시 반영합니다.
+      - bgm(루프), hitSound(충돌음), endSound(종료음) 3종을 준비합니다.
+        * preload='auto' 로 미리 로딩 시도.
+        * bgm.loop = true 로 배경음을 반복 재생.
+      - applySoundState(): 스위치 변경 시 muted 설정 및 표시(이모지 텍스트) 동기화.
+        OFF이면 bgm.pause()로 즉시 정지, ON이고 게임이 진행 중이면 재재를 시도합니다.
+      - 모바일 자동재생 우회: 사용자 입력(예: Start 버튼) 이후에 play() 시도.
 
-    const bgm = new Audio('back_snd1.mp3');
-    bgm.loop = true;
-    bgm.preload = 'auto';
+        bgm.pause();  //배경음 멈춤
+        bgm.play(); //배경음 실행
+        stopAllsfx(); //효과음 정지(hitSound 충돌음, endSound 종료음)
+        safePlay(endSound);   //종료음 재생
+        safePlay(hitSound);   //충돌음 재생
+    */
 
-    const hitSound  = new Audio('effect_snd1.mp3');
-    hitSound.preload = 'auto';
+    let soundEnabled = true;  /* ★1_13: 기본 ON - 처음에는 소리가 켜진 상태로 시작함 */
+    const soundToggle = document.getElementById('soundToggle'); /* ★1_13: HTML 체크박스(ON/OFF 버튼)를 가져옴 */
+    const soundStateEmoji = document.getElementById('soundStateEmoji'); /* ★1_13: 스피커 모양 이모지 표시 영역 */
+    const soundStateText = document.getElementById('soundStateText'); /* ★1_13: 'ON' 또는 'OFF' 글자 표시 영역 */
 
-    const endSound = new Audio('back_snd2.mp3');
-    endSound.preload = 'auto';
+    const bgm = new Audio('back_snd1.mp3'); /* ★1_13: 배경음 파일-게임할 때 계속 들리는 음악 */
+    bgm.loop = true;                        /* ★1_13: 음악이 끝나도 반복되게 함 */
+    bgm.preload = 'auto';                   /* ★1_13: 미리 로딩해서 재생 딜레이 줄임 */
 
-    function applySoundState() {
-      bgm.muted = hitSound.muted = endSound.muted = !soundEnabled;
-      soundStateEmoji.textContent = soundEnabled ? '🔊' : '🔈';
-      soundStateText.textContent = soundEnabled ? 'ON' : 'OFF';
-      if(!soundEnabled){ bgm.pause(); }
-      else if(gameStarted && stopTime === null){
-        try{ bgm.play(); }catch(e){}
+    const hitSound  = new Audio('effect_snd1.mp3'); /* ★1_13: 충돌 효과음(빨간 박스 닿을 때 '뿅' 소리) */
+    hitSound.preload = 'auto';                      /* ★1_13: 충돌음도 미리 로드해서 바로 재생되게 */
+
+    const endSound = new Audio('back_snd2.mp3');  /* ★1_13: 게임 끝났을 때 나오는 효과음 */
+    endSound.preload = 'auto';                    /* ★1_13: 종료음도 미리 준비 */
+
+    function applySoundState() {  /* ★1_13: 소리 켜기/끄기 스위치 상태를 실제 소리에 반여하는 함수 */
+      bgm.muted = hitSound.muted = endSound.muted = !soundEnabled;  /* ★1_13: soundEnabled가 false면 모든 소리 mute */
+      soundStateEmoji.textContent = soundEnabled ? '🔊' : '🔈';     /* ★1_13: 스피커 아이콘 변경 (소리 켜짐/꺼짐 표시) */
+      soundStateText.textContent = soundEnabled ? 'ON' : 'OFF';     /* ★1_13: 글자로도 상태 보여줌 */
+      if(!soundEnabled){ bgm.pause(); }                             /* ★1_13: 소리 OFF이면 배경음도 멈추기 */
+      else if(gameStarted && stopTime === null){                    /* ★1_13: ON + 진행중이면 배경음 재개 */
+        try{ bgm.play(); }catch(e){}                                /* ★1_13: 오류 나도 게임 멈추지 않게 안전하게 실행 */
       }
     }
-    soundToggle.addEventListener('change',                ()=>{
-      soundEnabled = soundToggle.checked;
-      applySoundState();
+    soundToggle.addEventListener('change', /* ★1_13: 스위치(체크박스)를 눌렀을 때 */ ()=>{  /* ★1_13: 토글 이벤트 */
+      soundEnabled = soundToggle.checked; /* ★1_13 */
+      applySoundState();                  /* ★1_13 */
     });
-    applySoundState();
+    applySoundState();  /* ★1_13: 초기 반영 */
 
-    function safePlay(Audio){
-      if(!soundEnabled) return;
-      try{Audio.currentTime = 0; Audio.play();}catch(e){}
+    function safePlay(Audio){ /* ★1_13: 소리 재생할 때 오류 나도 게임 안 멈추게 함 */
+      if(!soundEnabled) return; /* ★1_13: 소리 OFF면 아무 소리도 재생 안함 */
+      try{Audio.currentTime = 0; Audio.play();}catch(e){} /* ★1_13 */
     }
-    function stopAllsfx(){
-      [hitSound, endSound].forEach(a=>{ a.pause(); a.currentTime = 0; });
+    function stopAllsfx(){  /* ★1_13: 충돌음/종료음 모두 멈추고 처음 위치로 되돌림 */
+      [hitSound, endSound].forEach(a=>{ a.pause(); a.currentTime = 0; }); /* ★1_13 */
     }
 
     //  ★1_8 : 시간 출력 함수
@@ -483,25 +509,39 @@
         gameStarted = false;  //  ★1_8 : ★ 충돌 발생 → 게임 멈춤
         stopTime = (Date.now() - startTime) / 1000; //  ★1_8 : 충돌 시점까지의 경과 시간을 초 단위로 계산해 저장
         
-        
-        
-        
-        
-        stopAllsfx();
-        if(soundEnabled){
-          hitSound.onended = () => {
-            endSound.onended = null;
-            bgm.pause();
-            safePlay(endSound);
-            showMessage(`충돌! 경과 시간: ${stopTime.toFixed(2)}초\n저장 아이디((영어+숫자) 5~15이내)를 입력하세요`);
-          };
-          safePlay(hitSound);
+        /* ★1_13: 사운드 흐름
+            1) 배경음 상자
+            2) 충돌음(b.mp3) 재생이 끝나면
+            3) 종료음(c.mp3) 재생 후(또는 시작과 함께) 메시지 박스 표시
+            (브라우저 이벤트 누락 대비 setTimeout 보강)
 
+            - onended 체인이 환경에 따라 호출되지 않을 수 있어, setTimeout으로 보조 처리합니다.
+            - 사용자가 무음(OFF)이라면 효과음을 건너뛰고 즉시 메시지를 띄웁니다.
+        */
+        stopAllsfx(); /* ★1_13: 효과음 장치 */
+        if(soundEnabled){ /* ★1_13: 맨위 사운드 재쟁의 선택되었다면 실행, 사운드 off시 실행안됨 */
+          // ★★★중요★★★
+          // 아래는 충돌대상이 하나일때 배경음이 재쟁되는 상태에서 충돌음이 나고
+          // 충돌음이 종료되면 아이디입력상자가 보이며 두번째 배경음이 재생된다.
+          // 만약 충돌대상이 5개 이면 또는 모두 충돌해서 마지막 이라면 조건문을 추가하자
+          // if 충돌개수>=6 {아래 코드 동작} 이런식으로 해야 한다.
+          // 어려우면 선생인과 대화하거나 GPT를 사용해도 좋다.
+          // 이 부분의 내용이 어렵다 코드를 복사해 GPT에게 아주 쉽게 설명해달라하고
+          // 이해가 어려우면 선생님에게 질문하자~~~
+          hitSound.onended = () => {  /* ★1_13: 충돌음이 끝나고 나서 아래 동작하도록 함 */
+            endSound.onended = null;  /* ★1_13: 끝난 뒤 실행할 함수를 잠깐 비워두기, 중복으로 실행되는 버그 예방 */
+            bgm.pause();  /* ★1_13: 배경음 일시정지 */
+            safePlay(endSound); /* ★1_13: 종료음 재생 */
+            showMessage(`충돌! 경과 시간: ${stopTime.toFixed(2)}초\n저장 아이디((영어+숫자) 5~15이내)를 입력하세요`); /* ★1_13 */
+          };
+          safePlay(hitSound); /* ★1_13: 충돌음 재생 */
+
+          // ★1_13: 혹시 onended가 트리거되지 않는 환경 대비(짧은 효과음 등)
           setTimeout(()=>{
             if(msgBox.style.display !== 'block'){
               showMessage(`충돌! 경과 시간: ${stopTime.toFixed(2)}초\n저장 아이디((영어+숫자) 5~15이내)를 입력하세요`);
             }
-          }, 600);
+          }, 600);  /* ★1_13: 효과음 길이보다 살짝 여유 */
         }else{
           showMessage(`충돌! 경과 시간: ${stopTime.toFixed(2)}초\n저장 아이디((영어+숫자) 5~15이내)를 입력하세요`);
         }
@@ -628,6 +668,11 @@
       gameStarted = true; //  ★1_8 : 게임 시작 상태로 변경
       startTime = Date.now(); //  ★1_8 : 시작 시간 기록
       startBtn.style.display = 'none';  //  ★1_8 : 시작 버튼 숨김
+
+      /* ★1_13: 사용자 제스쳐 이후 배경음 재생(모바일 자동재생 정책 우회) */
+      if(soundEnabled){ /* ★1_13: 맨뒤 사운드 재생이 선택되었다면 실행, 사운드 off시 실행안됨 */
+        try{bgm.currentTime = 0; bgm.play();}catch(e){} /* ★1_13 */
+      } /* ★1_13 */
     });
 
     //  ★1_8 : 게임 초기화 함수
@@ -638,8 +683,10 @@
       x = (drawingBoard.width - 10) / 2;  //  ★1_8 : 플레이어 x 좌표를 캔버스 중앙에 위치
       y = (drawingBoard.height - 10) / 2; //  ★1_8 : 플레이어 y 좌표를 캔버스 중앙에 위치
 
-      bgm.pause();
-      stopAllsfx();
+      /* ★1_13: 사운드 상태 초기화 (배경음/효과음 정지) */
+      bgm.pause();  /* ★1_13: 배경음 일시정지 */
+      stopAllsfx(); /* ★1_13: 효과음 장치 */
+      /* ★1_13: ON이라도 Start 전에는 재생하지 않음 */
     }
 
     // 주인공 이동속도
@@ -657,9 +704,10 @@
       if(x<0) {//왼쪽 이동제한
         x = 0;
       }
+      /* ★1_13: 상/우하 경계도 보강(사운드와는 무관하지만 안전) */
       if (y < 0) y = 0;
-      if (x > drawingBoard.width - heroSize) x = drawingBoard.width - heroSize;
-      if (y > drawingBoard.height - heroSize) y = drawingBoard.height - heroSize;
+      if (x > drawingBoard.width - heroSize) x = drawingBoard.width - heroSize; /* ★1_13 */
+      if (y > drawingBoard.height - heroSize) y = drawingBoard.height - heroSize; /* ★1_13 */
     }
 
     //1_4 : 캔버스 왼쪽 상단에 텍스트 출력함수
@@ -728,8 +776,10 @@
       //  ★1_6 : DDD
       //  ★1_6 : 키가 눌력있는 동안 계속 이동(키보드 인식 속도 향상으로 이동을 부드럽게 변경)
       //  ★1_6 : 왼쪽 방향키를 선택해서 keys.ArrowLeft 값이 true일때 처리
-      if(gameStarted && stopTime === null) {
-        if (keys.ArrowLeft) moveLeft();
+
+      // 키가 눌려있는 동안 계속 이동(키보드 인식 속도 향상으로 이동을 부드럽게 변경)
+      if(gameStarted && stopTime === null) {  // 게임시작시 동작 if
+        if (keys.ArrowLeft) moveLeft(); // 왼쪽 방향키를 선택해서 keys.ArrowLeft 값이 true일때 처리
         if (keys.ArrowRight) moveRight(); //  ★1_6
         if (keys.ArrowUp) moveUp(); //  ★1_6
         if (keys.ArrowDown) moveDown(); //  ★1_6
