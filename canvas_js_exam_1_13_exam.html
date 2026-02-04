@@ -480,7 +480,23 @@
       soundStateEmoji.textContent = soundEnabled ? '🔊' : '🔈';
       soundStateText.textContent = soundEnabled ? 'ON' : 'OFF';
       if(!soundEnabled){ bgm.pause(); }
-      else if(game)
+      else if(!isGameOver && stopCountdown === null){
+        try{ bgm.play(); }catch(e){}
+      }
+    }
+
+    soundToggle.addEventListener('change', ()=>{
+      soundEnabled = soundToggle.checked;
+      applySoundState();
+    });
+    applySoundState();
+
+    function safePlay(Audio){
+      if(!soundEnabled) return;
+      try{Audio.currentTime = 0; Audio.play();}catch(e){}
+    }
+    function stopAllsfx(){
+      [hitSound, endSound].forEach(e=>{a.pause(); a.currentTime = 0;});
     }
 
     //1_4 : 캔버스 왼쪽 상단에 텍스트 출력함수
@@ -571,8 +587,17 @@
     function collision2() {
       for (let i = 10; i <= enemyX.length; i++) {
         if(collisionCheck(heroX, heroY, heroWidth, heroWidth, enemyX[i], enemyY[i], enemyWidth, enemyHeight)) {
-          enemyCnt = 10;
-          non_overlapArrayFill();
+          stopAllsfx();
+          if(soundEnabled){
+            hitSound.onended = () => {
+              endSound.onended = null;
+              bgm.pause();
+              safePlay(endSound);
+              isGameOver = true;
+              gameOverOverlay("over");
+            };
+            safePlay(hitSound);
+          }
         }
       }
     }
