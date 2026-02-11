@@ -171,9 +171,12 @@
       position: fixed;
       inset: 0;
       display: flex;
+      
       align-items: center;
       justify-content: center;
-      background: rgba(0, 0, 0, 0.65);
+
+      background: transparent;     /* 배경 안 쓰면 투명 */
+      pointer-events: none;        /* 중요: 뒤를 클릭 가능 */
       z-index: 1000;
     }
 
@@ -181,20 +184,12 @@
       width: min(520px, 92vw);
       padding: 60px 32px;
       border-radius: 16px;
-      background: white;
-      color: black;
       box-shadow: 0 12px 30px rgba(0,0,0,0.35);
-
+      background: white;
       display: flex;
       flex-direction: column;
       gap: 20px;
-      text-align: center;
-    }
-
-    #startoverlayTitle{
-      font-size: 28px;
-      font-weight: 800;
-      margin: 0;
+      pointer-events: auto;
     }
 
     #startoverlayMessage{
@@ -338,8 +333,7 @@
 
   <!-- OverLay_UI -->
   <div class="startoverlay" id="startoverlay">
-    <div class="startoverlay-content" id="startoverlay-content">
-      <div id="startoverlayTitle">⏱술래잡기 게임⏱</div>
+    <div class="startoverlay-content">
       <p id="startoverlayMessage"></p>
       <button class="startBtn" id="startBtn">게임 시작!</button>
       <button class="rankpageBtn" id="rankpageBtn">랭킹 보기</button>
@@ -480,7 +474,7 @@
       soundStateEmoji.textContent = soundEnabled ? '🔊' : '🔈';
       soundStateText.textContent = soundEnabled ? 'ON' : 'OFF';
       if(!soundEnabled){ bgm.pause(); }
-      else if(!isGameOver /*&& stopCountdown === null */){
+      else if( !isGameOver && stopCountdown === null ){
         try{ bgm.play(); }catch(e){}
       }
     }
@@ -713,14 +707,10 @@
     });
 
     cancelBtn.addEventListener("click", () => {
-      /*
-      location.reload();
-      isGameOver = false;
-      bgm.pause();
-      stopAllsfx();
-      */
-     overlay.style.display = 'none';
      bgm.pause();
+     stopAllsfx();
+     drawingPen.clearRect(0, 0, canvas.width, canvas.height);
+     overlay.style.display = 'none';
      gameStartOverlay();
     });
 
@@ -732,7 +722,6 @@
     
 
     function gameStartOverlay() {
-        startoverlayTitle.textContent = "술래잡기 게임";
         startoverlayMessage.textContent = "파란색 적을 피해 빨간색 적을 모두 잡으세요!";
         startoverlay.style.display = "flex";
 
