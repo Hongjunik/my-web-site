@@ -1,0 +1,815 @@
+<!DOCTYPE html>
+<html lang="en">  <!-- 기본언어 : 영어 -->
+<head>
+  <meta charset="UTF-8" /> <!-- 페이지 언어 인코딩 형식 -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/> <!-- 화면크기에 따라 보여지는 크기 맞추기 -->
+  <title>Web Animation(canvas_js_css)[1단원-11]</title>
+  <style>
+    /* 페이지 전체 설정 */
+    body {
+      margin: 0;
+      padding: 0;
+      text-align: center;
+      font-family: sans-serif;
+    }
+    /* 애니메이션 화면 설정 */
+    #canvas {
+      background: #DCD7C9;
+      display: block;
+      margin: 0 auto;
+    }
+
+    .sound-toggle-wrap{
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      display: flex;
+      justify-content: center;
+      background: rgba(255, 255, 255, 0.9);
+      border-bottom: 1px solid #e5e5e5;
+      padding: 6px 8px;
+    }
+
+    .sound-toggle{
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 700;
+      color: #222;
+      user-select: none;
+    }
+
+    .switch{
+      position: relative;
+      display: inline-block;
+      width: 54px;
+      height: 28px;
+    }
+    .switch input{
+      display: none;
+    }
+    .slider{
+      position: absolute;
+      cursor: pointer;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: #ccc;
+      transition: .2s;
+      border-radius: 28px;
+    }
+    .slider::before{
+      position: absolute;
+      content: "";
+      height: 22px;
+      width: 22px;
+      left: 3px;
+      top: 3px;
+      background: white;
+      transition: .2s;
+      border-radius: 50%;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+    }
+    input:checked + .slider{
+      background-color: #4CAF50;
+    }
+    input:checked + .slider::before{
+      transform: translateX(26px);
+    }
+
+    /* 1_5 : PC 안내 문구 기본은 숨김 */
+    .pc-guide {
+      display: none; /* 1_5 : 화면에 보이지 않게함 */
+      margin-top: 10px; /* 1_5 : 위쪽여백 */
+      font-size: 16px; /* 1_5 : 버튼 글자크기 */
+      color: #333; /* 1_5 : 글자색 */
+      font-weight: bold; /* 1_5 : 글자굵게 */
+    }
+
+    /* PC에서는 600x600 고정 */
+    @media (min-width: 769px) {
+      #canvas {
+      width: 600px;
+      height: 600px;
+      }
+
+      .pc-guide {
+        display: block; /* 1_5 : pc-guide를 PC에서 접속시 보이게함 */
+      }
+    }
+
+    /* 1_5 : 버튼을 감싸는 div 숨기기 (PC에서는 안 보이게하고 스마트폰에서 접속이 보임) */
+    .controls {
+      display: none; /* 1_5 : 화면에 보이지 않게함 */
+      margin-top: 10px;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .controls .row {
+      display: flex;
+      justify-content: center;
+    }
+
+    /* 1_5 : 스마트폰에서 보여질 버튼 모양 설정 */
+    .controls button {
+      font-size: 24px;
+      padding: 15px 20px;
+      margin: 5px;
+      min-width: 60px;
+      border-radius: 10px;
+      border: none;
+      background-color: #333;
+      color: white;
+      touch-action: none;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    .controls button:active {
+      background-color: #555;
+    }
+
+    /* 1_5 : 화면이 작을 때 (스마트폰 등에서 보인다면 아래 코드동작)
+       화면의 폭이 최대 768픽셀보다 이하이면 아래 css동작함 아니면 위 PC용 CSS @media (min-width: 769px) 동작함
+       최근 스마트폰의 해상도는 PC보다도 좋은 경우가 많은데 768픽셀보다 작으면 스마트폰이라니?
+        이유 : 스마트폰의 물리적인 해상도는 더 크지만, 화면을 작게 보이도록 하기 위해 **디바이스 픽셀 비율(DPR, divicePixelRatio)**을 사용함
+       아이폰13의 가로해상도가 1170픽셀인데 CSS픽셀로는 1170/3=390픽셀임
+       현재 기기로 보아도 768 CSS픽셀이면 모든 스마트폰에서 접속하는 것으로 판단함 */
+
+    
+
+    @media (max-width: 768px) {
+      #canvas {
+        width: 100vw; /* 1_5 : 스마트폰 화면 canvas 가로 전체 크기로함 */
+        height: 100vw; /* 1_5 : 화면 canvas 세로 = 가로 (정사각형) */
+      }
+      .controls {
+        display: block; /* 1_5 : 스마트폰에서 접속시 controls을 보이게함 */
+      }
+      .pc-guide {
+        display: none; /* 1_5 : pc-guide를 스마트폰 접속시 숨김 */
+      }
+    }
+
+    .game-title {
+      text-align: center;
+      font-size: 36px;
+      font-weight: 900;
+      color: #1d3ea3;
+      text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+      margin-top: 16px;
+      margin-bottom: 8px;
+      letter-spacing: 2px;
+      font-family: 'Trebuchet MS', 'Noto sans KR', sans-serif;
+    }
+
+    /* === OverLay_UI === */
+
+    .startoverlay{
+      position: fixed;
+      inset: 0;
+      display: flex;
+      
+      align-items: center;
+      justify-content: center;
+
+      background: transparent;     /* 배경 안 쓰면 투명 */
+      pointer-events: none;        /* 중요: 뒤를 클릭 가능 */
+      z-index: 1000;
+    }
+
+    .startoverlay-content {
+      width: min(520px, 92vw);
+      padding: 60px 32px;
+      border-radius: 16px;
+      box-shadow: 0 12px 30px rgba(0,0,0,0.35);
+      background: white;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      pointer-events: auto;
+    }
+
+    #startoverlayMessage{
+      font-size: 20px;
+      margin: 0 0 8px 0;
+      opacity: 0.9;
+    }
+
+    .startoverlay-content button {
+      cursor: pointer;
+      user-select: none;
+      transition: transform 0.1s ease;
+    }
+
+    .startoverlay-content button:hover {
+      transform: scale(1.05);
+    }
+
+    .startoverlay-content button:active {
+      transform: scale(0.95);
+    }
+
+    .startBtn{
+      background: #34a049;
+      color: #fff;
+      font-size: 24px;
+      font-weight: 800;
+      padding: 12px 20px;
+      border-radius: 10px;
+      border: none;
+      box-shadow: 0 6px 14px rgba(0,0,0,0.30);
+    }
+
+    .rankpageBtn{
+      background: #2b6cb0;
+      color: #fff;
+      font-size: 20px;
+      font-weight: 800;
+      padding: 12px 20px;
+      border-radius: 10px;
+      border: none;
+      box-shadow: 0 6px 14px rgba(0,0,0,0.28);
+    }
+
+
+    .overlay {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.5);
+      justify-content: center;
+      align-items: center;
+      z-index: 1100;
+    }
+
+    .overlay-content {
+      background: white;
+      padding: 30px;
+      border-radius: 10px;
+      text-align: center;
+      min-width: 250px;
+    }
+
+    .overlay-content h2 { margin-bottom: 20px;}
+    .overlay-content button {
+      margin-top: 20px;
+      padding: 10px 20px;
+      font-size: 16px;
+      cursor: pointer;
+    }
+
+    #overlayMessage {
+      white-space: pre-line;
+    }
+
+  </style>
+  <script type="module">
+    // Import the functions you need from the SDKs you need
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-app.js";
+    import { getFirestore } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-firestore.js";
+    // TODO: Add SDKs for Firebase products that you want to use
+    // https://firebase.google.com/docs/web/setup#available-libraries
+
+    // Your web app's Firebase configuration
+    // For Firebase JS SDK v7.20.0 and later, measurementId is optional
+    const firebaseConfig = {
+      apiKey: "AIzaSyCPSD0RdcqYVHSqnQPdobqD4A4vow5ft4Q",
+      authDomain: "my-webgame-project1-92d16.firebaseapp.com",
+      projectId: "my-webgame-project1-92d16",
+      storageBucket: "my-webgame-project1-92d16.firebasestorage.app",
+      messagingSenderId: "349232304034",
+      appId: "1:349232304034:web:2cb1bc2aa2736ed0f9acfb",
+      measurementId: "G-83HH3SD6JZ"
+    };
+
+    // Initialize Firebase
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    window._db = db;
+  </script>
+</head>
+<body>
+  
+  <div class="sound-toggle-wrap">
+    <div class="sound-toggle">
+      <span id="soundStateEmoji">🔊</span>
+      <label class="switch" title="사운드 On/Off">
+        <input type="checkbox" id="soundToggle" checked />
+        <span class="slider"></span>
+      </label>
+      <span id="soundStateText">ON</span>
+    </div>
+  </div>
+
+  <div class="game-title">🏁 스퀘어 타임런 ⏱</div>
+
+  <!-- 애니메이션 화면 만들기 -->
+  <canvas id="canvas"></canvas>
+
+  <!-- 1_5 : 애니메이션 화면 만들기 : 스마트폰에서 접속 할 때만 controls이 보이게됨 -->
+  <div class="controls">
+    <div class="row">
+      <button id="upBtn">↑</button>
+    </div>
+    <div class="row">
+      <button id="leftBtn">←</button>
+      <button id="downBtn">↓</button>
+      <button id="rightBtn">→</button>
+    </div>
+  </div>
+
+  <!-- 1_5 : PC 전용 안내 문구 -->
+  <div class="pc-guide">
+    PC에서 접속했습니다. 방향키로 이동하세요.<br>
+    스마트폰에서 접속 시 보이는 버튼으로 이동하세요.
+  </div>
+
+  <!-- OverLay_UI -->
+  <div class="startoverlay" id="startoverlay">
+    <div class="startoverlay-content">
+      <p id="startoverlayMessage"></p>
+      <button class="startBtn" id="startBtn">게임 시작!</button>
+      <button class="rankpageBtn" id="rankpageBtn">랭킹 보기</button>
+      <button class="characterBtn" id="characterBtn">캐릭터</button>
+    </div>
+  </div>
+
+  <div class="overlay" id="overlay">
+    <div class="overlay-content">
+      <h2 id="overlayTitle">Game Over</h2>
+      <p id="overlayMessage"></p>
+      <input type="text" id="userId" placeholder="(영어+숫자) 5~15자이내">
+      <br>
+      <button id="saveBtn">저장</button>
+      <button id="cancelBtn">취소</button>
+    </div>
+  </div>
+
+  <script type="module">
+    import {containsSwearWord} from "https://cdn.jsdelivr.net/gh/bc-develop2000/swear_words@main/swear_words.js";
+    window.containsSwearWord = containsSwearWord;
+    console.log("[swear] module loaded, sample:", containsSwearWord("fuck", "eng"));
+  </script>
+
+  <script>
+    // 캔버스 요소 J5 변수만들기
+    const drawingBoard = document.getElementById('canvas');
+    // 캔버스에 2D그림을 그리는 도구 변수만들기
+    const drawingPen = drawingBoard.getContext('2d');
+
+    // 캔버스 크기를 CSS와 맞춰줌 (중요!)
+    // 아래처럼 하면 PC는 600x600으로 설정되고 스마트폰은 360x360으로 화면계산된 나중에 필요하면 참고사용
+    // drawingBoard.width = drawingBoard.clientWidth;
+    // drawingBoard.height = drawingBoard.clientHeight;
+    // 캔버스 내부 해상도는 무조건 600x600 고정(PC, 스마트폰 모두)
+    drawingBoard.width = 600;
+    drawingBoard.height = 600;
+
+    // 주인공 위치(화면 왼쪽 하단)
+    let heroX = 20;
+    let heroY = (drawingBoard.height - 30); //570
+
+    //적 위치(하면 가운데)
+    let enemyX = new Array(15);
+    let enemyY = new Array(15);
+
+    let enemyCnt=(enemyX.length-5);
+
+    
+
+    let timerMinutes = 0;
+    let timerSeconds = 0;
+    let timerCenti = 0; //  1/100초
+    let startTime = Date.now();
+    let stopCountdown = null;
+    let drawLoopId = null;
+    let isGameOver = false;
+
+    let elapsed = 0;
+
+   function startCountdown(ms, onTick, onEnd) {
+    const start=performance.now();
+    const end=start+ms;
+    let tId=0;
+
+    function step() {
+      const now = performance.now();
+      const remaining = Math.max(0, end - now); //reamining에 0과 end-now중 큰 값을 넣는다.(음수가 변수에 들어가는 경우를 없에서 보정을 함)
+      
+      const totalCenti = Math.floor(remaining / 10); // 1/100초 단위
+      const minutes = Math.floor(totalCenti / 6000); // 60*100
+      const seconds = Math.floor((totalCenti % 6000) / 100);
+      const centi = totalCenti % 100;
+
+      onTick?.(minutes, seconds, centi);
+
+      if (remaining <= 0) {
+        onEnd?.();
+        return;
+      }
+      tId = setTimeout(step, 10);
+    }
+
+    step();
+    return () => clearInterval(tId);
+   }
+
+    //주인공 크기
+    const heroWidth = 10;
+    const heroHeith = 10;
+
+    //적 크기
+    const enemyWidth = 20;
+    const enemyHeight = 20;
+
+    // 주인공 이동속도
+    const moveAmount = 5;
+
+    // 주인공 이동함수
+    function moveRight() {heroX = heroX + moveAmount;}
+    function moveLeft() {heroX = heroX - moveAmount;}
+    function moveDown() {heroY = heroY + moveAmount;}
+    function moveUp() {heroY = heroY - moveAmount;}
+
+
+    // 1_4 : 주인공 이동제한
+    function move_limit() {
+      if(heroX<0) {//왼쪽 이동제한
+        heroX = 0;
+      }
+      if(heroX>=drawingBoard.width-10) {//오른쪽 이동제한
+        heroX = (drawingBoard.width-10);
+      }
+      if(heroY<0) {//위쪽 이동제한
+        heroY=0;
+      }
+      if(heroY>=drawingBoard.height-10) {//아래쪽 이동제한
+        heroY=(drawingBoard.height-10);
+      }
+    }
+
+    let soundEnabled = true;
+    const soundToggle = document.getElementById('soundToggle');
+    const soundStateEmoji = document.getElementById('soundStateEmoji');
+    const soundStateText = document.getElementById('soundStateText');
+
+    const bgm = new Audio('back_snd1.mp3');
+    bgm.loop = true;
+    bgm.preload = 'auto';
+
+    const hitSound = new Audio('effect_snd1.mp3');
+    hitSound.preload = 'auto';
+
+    const endSound = new Audio('back_snd2.mp3');
+    endSound.preload = 'auto';
+
+    function applySoundState() {
+      bgm.muted = hitSound.muted = endSound.muted = !soundEnabled;
+      soundStateEmoji.textContent = soundEnabled ? '🔊' : '🔈';
+      soundStateText.textContent = soundEnabled ? 'ON' : 'OFF';
+      if(!soundEnabled){ bgm.pause(); }
+      else if( !isGameOver && stopCountdown !== null ){
+        try{ bgm.play(); }catch(e){}
+      }
+    }
+
+    soundToggle.addEventListener('change', ()=>{
+      soundEnabled = soundToggle.checked;
+      applySoundState();
+    });
+    applySoundState();
+
+    function safePlay(Audio){
+      if(!soundEnabled) return;
+      try{Audio.currentTime = 0; Audio.play();}catch(e){}
+    }
+    function stopAllsfx(){
+      [hitSound, endSound].forEach(a=>{a.pause(); a.currentTime = 0;});
+    }
+
+    //1_4 : 캔버스 왼쪽 상단에 텍스트 출력함수
+    function drawCoordinate() {
+      drawingPen.fillStyle = 'black';
+      drawingPen.font = '10px sans-serf';
+      drawingPen.fillText(`X: ${heroX} Y: ${heroY}`, 10, 20);
+    }
+
+    // 주인공 출력함수
+    function drawHero() {
+      drawingPen.fillStyle = 'black';
+      drawingPen.fillRect(heroX, heroY, heroWidth, heroHeith);
+    }
+
+    // 중복확인 함수
+    // 많이 쓰이는 표준형: 좌표를 랜덤 생성 후 중복시 다시 시도
+    function non_overlapArrayFill() {
+      const maxAttempts = 500;
+
+      for (let i = 0; i < enemyX.length; i++) {
+        let attempts = 0;
+        let valid = false;
+
+        while (!valid && attempts < maxAttempts) {
+          const tempX = Math.floor(Math.random() * (drawingBoard.width - enemyWidth));
+          const tempY = Math.floor(Math.random() * ((drawingBoard.height - enemyHeight) - 15 + 1))+15;
+          valid = true;
+
+          for (let j = 0; j < i; j++) {
+            if (collisionCheck(tempX, tempY, enemyWidth + 5, enemyHeight + 5,
+                enemyX[j], enemyY[j], enemyWidth + 5, enemyHeight + 5)) {
+              valid = false;
+              break;
+            }
+          }
+
+          if (valid) {
+            enemyX[i] = tempX;
+            enemyY[i] = tempY;
+          }
+
+          attempts++;
+        }
+
+        if (attempts >= maxAttempts) {
+          console.warn(`오류가 발생했습니다. 게임을 재시작합니다.`);
+          location.reload();
+        }
+      }
+    }
+
+    // 적 출력함수
+    function enemy1() {
+      for (let i = 0; i < (enemyX.length-5); i++) {
+        drawingPen.fillStyle = 'red';
+        drawingPen.fillRect(enemyX[i], enemyY[i], enemyWidth, enemyHeight);
+      }
+    }
+
+    function enemy2() {
+      for (let i = 10; i <= enemyX.length; i++) {
+        drawingPen.fillStyle = 'blue';
+        drawingPen.fillRect(enemyX[i], enemyY[i], enemyWidth, enemyHeight);
+      }
+    }
+
+    // 충돌 감지 함수
+    function collisionCheck(aX, aY, aWidth, aHeith, bX, bY, bWidth, bHeith) {
+      if(((aX+aWidth) > bX && aX < (bX+bWidth)) && ((aY+aHeith) > bY && aY < (bY+bHeith))) {
+        return true;
+      }else{
+        return false;
+      }
+    }
+
+    //  적 충돌 함수
+    function collision1() {
+      for (let i = 0; i < (enemyX.length-5); i++) {
+        if(collisionCheck(heroX, heroY, heroWidth, heroWidth, enemyX[i], enemyY[i], enemyWidth, enemyHeight)) {
+          enemyX[i] = Number.MAX_SAFE_INTEGER
+          enemyY[i] = Number.MAX_SAFE_INTEGER
+          enemyCnt--;
+        }
+      }
+    }
+
+    function collision2() {
+      for (let i = 10; i <= enemyX.length; i++) {
+        if(collisionCheck(heroX, heroY, heroWidth, heroWidth, enemyX[i], enemyY[i], enemyWidth, enemyHeight)) {
+          isGameOver = true;
+          stopAllsfx();
+          if(soundEnabled){
+            hitSound.onended = () => {
+              endSound.onended = null;
+              bgm.pause();
+              safePlay(endSound);
+              gameOverOverlay("over");
+            };  
+          }
+          safePlay(hitSound);
+          setTimeout(()=>{
+            gameOverOverlay("over");
+          }, 600);
+        }
+      }
+    }
+
+    function counter() {
+        drawingPen.fillStyle = 'black';
+        drawingPen.font = '10px sans-serf';
+        drawingPen.fillText(`RED no ${enemyCnt}`, 550, 20);
+    }
+
+    function drawTimer() {
+      drawingPen.fillStyle = 'black';
+      drawingPen.font = '20px sans-serf';
+      drawingPen.fillText(`${timerMinutes}:${timerSeconds.toString().padStart(2,"0")}:${timerCenti.toString().padStart(2,"0")}`,
+        (canvas.width/2)-40, 20
+      );
+    }
+
+    const keys = {
+      ArrowLeft: false,
+      ArrowRight: false,
+      ArrowUp: false,
+      ArrowDown: false
+    }
+
+    document.addEventListener('keydown', (e) => {
+      if (keys.hasOwnProperty(e.key)) {
+        keys[e.key] = true;
+      }
+    });
+
+    document.addEventListener('keyup', (e) => {
+      if(keys.hasOwnProperty(e.key)) {
+        keys[e.key] = false;
+      }
+    });
+
+    // === OverLay 관련 ===
+    const overlay = document.getElementById("overlay");
+    const overlayTitle = document.getElementById("overlayTitle");
+    const overlayMessage = document.getElementById("overlayMessage");
+    const userIdInput = document.getElementById("userId");
+    const saveBtn = document.getElementById("saveBtn");
+    const cancelBtn = document.getElementById("cancelBtn");
+    
+
+    function gameOverOverlay(type, value = "") {
+      if (type === "over") {
+        overlayTitle.textContent = "게임오버";
+        overlayMessage.textContent = "시간이 다 되었습니다!";
+      }else if (type === "record") {
+        overlayTitle.textContent = "🎉 클리어!";
+        overlayMessage.textContent = `기록: ${value}초\n저장 아이디((영어+숫자) 5~15자이내)를 입력하세요.`;
+      }
+      overlay.style.display = "flex";
+    }
+
+    function resetGame() {
+      isGameOver != isGameOver;
+
+    }
+
+    saveBtn.addEventListener("click", async () => {
+      const val = userIdInput.value.trim();
+      if (typeof window.containsSwearWord !== `function`) {
+        alert(`욕설 필터 모듈을 불러오지 못했습니다. (ESM import 확인)`);
+        console.error(`[swear] containsSwearWord no ready`);
+        return;
+      }
+      const re = /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z0-9]{5,15}$/;
+
+      if (containsSwearWord(val, "eng")) {
+        alert("사용할 수 없는 단어가 포함되어 있습니다.");
+        userIdInput.focus();
+        return;
+      }
+      if(!re.test(val)) {
+        alert("아이디는 영어와 숫자를 반드시 포함한 5~15자여야 합니다.");
+        userIdInput.focus();
+        return;
+      }
+      alert(`입력한 아이디는 ${val}입니다.`);
+
+      try {
+        const db = window._db;
+
+        if(!db) {
+          alert("DB 초기화 실패: Firebase 설정을 확인하세요.");
+          return;
+        }
+
+        const {collection, addDoc, serverTimestamp} = await import(
+          "https://www.gstatic.com/firebasejs/12.7.0/firebase-firestore.js"
+        );
+
+        await addDoc(collection(db, "scores_exam"), {
+          userId: val,
+          time: elapsed,
+          createAt: serverTimestamp()
+        });
+
+        alert(`저장되었습니다!\nID: ${val}\n기록: ${elapsed}초`);
+        location.href="canvas_js_exam_1_13_exam_rankpage.html"
+        // alert("저장 성공 : 다음 단원에서는 성공시 rankpage.html 페이지로 이동을 학습합니다.");
+      } catch(err) {
+        console.error(err);
+        alert("저장 중 오류가 발생했습니다. 콘솔을 확인하세요.");
+      }
+      // location.reload();
+    });
+
+    cancelBtn.addEventListener("click", () => {
+     bgm.pause();
+     stopAllsfx();
+     drawingPen.clearRect(0, 0, canvas.width, canvas.height);
+     overlay.style.display = 'none';
+     gameStartOverlay();
+    });
+
+    const startoverlay = document.getElementById("startoverlay");
+    const startoverlayTitle = document.getElementById("startoverlayTitle");
+    const startoverlayMessage = document.getElementById("startoverlayMessage");
+    const startBtn = document.getElementById("startBtn");
+    const rankpageBtn = document.getElementById("rankpageBtn");
+    const characterBtn = document.getElementById("characterBtn");
+    
+
+    function gameStartOverlay() {
+        startoverlayMessage.textContent = "파란색 적을 피해 빨간색 적을 모두 잡으세요!";
+        startoverlay.style.display = "flex";
+
+        startBtn.addEventListener("click", () => {
+          startoverlay.style.display = "none";
+
+          isGameOver = false;
+          enemyCnt = enemyX.length - 5;
+          startTime = Date.now();
+
+          if(soundEnabled){
+            try{bgm.currentTime = 0; bgm.play();}catch(e){}
+          }
+
+          non_overlapArrayFill();
+
+          if (drawLoopId) clearInterval(drawLoopId);
+          drawLoopId = setInterval(draw, 16);
+
+          if (stopCountdown) stopCountdown();
+          stopCountdown = startCountdown(
+            60_000,
+            (m, s, c) => { timerMinutes = m; timerSeconds = s; timerCenti = c; },
+            () => {
+              if (!isGameOver) {              // 이미 게임 끝났으면 다시 안 띄움
+                isGameOver = true;
+                gameOverOverlay("over");
+              }
+            }
+          );
+        }, {once: true});
+
+        characterBtn.addEventListener("click", () => alert());
+        rankpageBtn.addEventListener("click", () => { location.href="canvas_js_exam_1_13_exam_rankpage.html" });
+      }
+
+    // 화면에 출력하기
+    function draw() {
+      if (isGameOver) return; // 게임 끝났으면 draw 루프 중단
+
+      drawingPen.fillText(`X: ${heroX} Y: ${heroY}`, 10, 20); //1_4 : 캔버스 왼쪽 상단에 텍스트 출력
+      drawingPen.clearRect(0, 0, canvas.width, canvas.height);  //화면지우기/      drawTimer();  // 타이머출력함수호출
+      drawHero(); // 주인공출력함수호출
+      enemy1(); // 적 출력함수 호출
+      enemy2();
+      collision1(); //적 충돌함수 호출
+      collision2();
+      counter();  // 적 카운트함수 호출
+      move_limit(); //1_4 : 주인공 이동 제한 함수호출
+      drawCoordinate(); //1_4 : 텍스트 출력 함수호출
+      drawTimer();  //타이머 출력함수 호출
+
+      if (keys.ArrowLeft) moveLeft();
+      if (keys.ArrowRight) moveRight();
+      if (keys.ArrowUp) moveUp();
+      if (keys.ArrowDown) moveDown();
+
+      // 조건 체크
+      if (enemyCnt === 0 && !isGameOver) {
+        elapsed = ((Date.now() - startTime)/1000).toFixed(2);
+        stopCountdown?.();
+        isGameOver = true;
+        gameOverOverlay("record", elapsed);
+      }
+    }
+
+    gameStartOverlay();
+    
+    const setBtnHod = (key, isDown) => {
+      keys[key] = isDown;
+    };
+
+    const bindButton = (id, key) => {
+      const btn = document.getElementById(id);
+      btn.addEventListener('touchstart', () => setBtnHod(key, true));
+      btn.addEventListener('touchend', () => setBtnHod(key, false));
+      btn.addEventListener('mousedown', () => setBtnHod(key, true));
+      btn.addEventListener('mouseup', () => setBtnHod(key, false));
+      btn.addEventListener('mouseleave', () => setBtnHod(key, false));
+    };
+
+    bindButton("leftBtn", "ArrowLeft");
+    bindButton("rightBtn", "ArrowRight");
+    bindButton("upBtn", "ArrowUp");
+    bindButton("downBtn", "ArrowDown");
+ </script>
+
+</body>
+</html>
