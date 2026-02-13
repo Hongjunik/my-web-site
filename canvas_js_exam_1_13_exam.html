@@ -474,7 +474,7 @@
       soundStateEmoji.textContent = soundEnabled ? '🔊' : '🔈';
       soundStateText.textContent = soundEnabled ? 'ON' : 'OFF';
       if(!soundEnabled){ bgm.pause(); }
-      else if( !isGameOver && stopCountdown === null ){
+      else if( !isGameOver && stopCountdown !== null ){
         try{ bgm.play(); }catch(e){}
       }
     }
