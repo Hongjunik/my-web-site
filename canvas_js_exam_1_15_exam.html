@@ -12,6 +12,7 @@
       text-align: center;
       font-family: sans-serif;
     }
+    
     /* 애니메이션 화면 설정 */
     #canvas {
       background: #DCD7C9;
@@ -267,7 +268,41 @@
     #overlayMessage {
       white-space: pre-line;
     }
+    /* === QR SHARE AREA === */
+.qr-share {
+  margin: 16px auto 24px;
+  padding: 16px;
+  max-width: 320px;
+  background: #ffffff;
+  border-radius: 16px;
+  box-shadow: 0 6px 16px rgba(0,0,0,0.15);
+  text-align: center;
+}
 
+.qr-title {
+  font-size: 18px;
+  font-weight: 800;
+  margin-bottom: 10px;
+}
+
+.qr-img {
+  width: 140px;
+  height: 140px;
+}
+
+.qr-desc {
+  margin-top: 8px;
+  font-size: 14px;
+  line-height: 1.4;
+  color: #444;
+}
+
+@media (min-width: 769px) {
+  .qr-img {
+    width: 160px;
+    height: 160px;
+  }
+}
   </style>
   <script type="module">
     // Import the functions you need from the SDKs you need
@@ -315,6 +350,15 @@
 
   <!-- 1_5 : 애니메이션 화면 만들기 : 스마트폰에서 접속 할 때만 controls이 보이게됨 -->
   <div class="controls">
+      <!-- QR 공유 영역 -->
+  <div class="qr-share">
+    <p class="qr-title">📱 친구에게 공유하기</p>
+    <img src="qr.png" alt="게임 QR 코드" class="qr-img">
+    <p class="qr-desc">
+      카메라로 QR을 찍고<br>
+      바로 게임 플레이!
+    </p>
+  </div>
     <div class="row">
       <button id="upBtn">↑</button>
     </div>
@@ -336,6 +380,8 @@
     <div class="startoverlay-content">
       <p id="startoverlayMessage"></p>
       <button class="startBtn" id="startBtn">게임 시작!</button>
+      <img src="qr.png" class="qr-img" style="margin: 0 auto;">
+      <p class="qr-desc">QR 찍고 친구도 바로 플레이!</p>
       <button class="rankpageBtn" id="rankpageBtn">랭킹 보기</button>
       <button class="characterBtn" id="characterBtn">캐릭터</button>
     </div>
@@ -437,6 +483,7 @@
     function moveLeft() {heroX = heroX - moveAmount;}
     function moveDown() {heroY = heroY + moveAmount;}
     function moveUp() {heroY = heroY - moveAmount;}
+    function moveJump() {}
 
 
     // 1_4 : 주인공 이동제한
@@ -618,7 +665,8 @@
       ArrowLeft: false,
       ArrowRight: false,
       ArrowUp: false,
-      ArrowDown: false
+      ArrowDown: false,
+      SpaceBar: false
     }
 
     document.addEventListener('keydown', (e) => {
@@ -780,6 +828,7 @@
       if (keys.ArrowRight) moveRight();
       if (keys.ArrowUp) moveUp();
       if (keys.ArrowDown) moveDown();
+      if (keys.SpaceBar) moveJump();
 
       // 조건 체크
       if (enemyCnt === 0 && !isGameOver) {
