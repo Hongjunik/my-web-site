@@ -282,6 +282,10 @@
       border-radius:999px; padding:4px 10px;
       background:#eef2ff; color:#3730a3; font-weight:700; font-size:12px;
     }
+    .gameRestartBtn.limit-mode {
+      display: none;
+      pointer-events: none;
+    }
   </style>
 </head>
 <body>
@@ -410,6 +414,7 @@
       <div class="row-btns">
         <button id="settingsCloseBtn" class="btn primary" type="button">저장하고 닫기</button>
         <button id="settingsResetBtn" class="btn secondary" type="button">기본값</button>
+        <button id="gameRestartBtn" class="btn danger" type="button">재시작</button>
       </div>
     </div>
   </div>
@@ -960,6 +965,7 @@
     const optCombatEffects = document.getElementById('optCombatEffects');
     const optMobileControls = document.getElementById('optMobileControls');
     const optMobileHandedness = document.getElementById('optMobileHandedness');
+    const gameRestartBtn = document.getElementById('gameRestartBtn');
 
     function syncSettingsUIFromState() {
       optShowGrid.checked = !!state.settings.showGrid;
@@ -1013,11 +1019,21 @@
     }
 
     document.getElementById('startSettingsBtn').addEventListener('click', () => {
+      if (state.mode === 'title') gameRestartBtn.classList.add('limit-mode');
       openSettingsOverlay('title');
     });
 
     document.getElementById('settingsCloseBtn').addEventListener('click', () => {
+      if (state.mode === 'title') gameRestartBtn.classList.remove('limit-mode');
       closeSettingsOverlay({ save: true });
+    });
+
+    document.getElementById('gameRestartBtn').addEventListener('click', () => {
+      state.mode = 'title';
+      state.paused = false;
+      startOverlay.classList.add('show');
+      settingsOverlay.classList.remove('show');
+      renderClassCards();
     });
 
     document.getElementById('settingsResetBtn').addEventListener('click', () => {
