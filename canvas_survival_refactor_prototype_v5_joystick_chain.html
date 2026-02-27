@@ -1,0 +1,2279 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Arcane Survival Canvas Prototype</title>
+  <style>
+    :root{
+      --bg:#0f172a;
+      --panel:#ffffff;
+      --panel2:#f8fafc;
+      --ink:#0f172a;
+      --muted:#64748b;
+      --accent:#2563eb;
+      --good:#16a34a;
+      --warn:#dc2626;
+      --gold:#f59e0b;
+    }
+    *{ box-sizing:border-box; }
+    body{
+      margin:0; padding:0; text-align:center;
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans KR", sans-serif;
+      background:linear-gradient(180deg,#e2e8f0,#cbd5e1);
+      color:#0f172a;
+    }
+    .topbar{
+      position: sticky; top:0; z-index:20;
+      display:flex; align-items:center; justify-content:center; gap:14px;
+      background:rgba(255,255,255,.9);
+      border-bottom:1px solid rgba(15,23,42,.08);
+      backdrop-filter: blur(6px);
+      padding:8px 10px;
+      font-weight:700;
+    }
+    .hint{
+      font-size:14px; color:#334155; margin:10px 8px 6px;
+    }
+    .game-title{
+      margin: 10px 0 6px;
+      font-size: clamp(24px, 5vw, 34px);
+      font-weight: 900;
+      color:#1e3a8a;
+      letter-spacing: 1px;
+      text-shadow: 0 2px 0 rgba(255,255,255,.8);
+    }
+    #canvas{
+      display:block;
+      margin: 0 auto;
+      background:#0b1020;
+      border: 3px solid rgba(15,23,42,.18);
+      border-radius: 14px;
+      box-shadow: 0 12px 28px rgba(15,23,42,.18);
+      touch-action: none;
+    }
+    @media (min-width:769px){
+      #canvas{ width:600px; height:600px; }
+    }
+    @media (max-width:768px){
+      #canvas{ width:100vw; height:100vw; border-radius:0; border-left:0; border-right:0; }
+    }
+
+    .controls{
+      display:none;
+      margin: 12px auto 20px;
+      width:min(560px, 100vw);
+      padding: 0 10px;
+    }
+    @media (max-width:768px){ .controls{ display:block; } }
+    .controls-grid{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      width:100%;
+    }
+    .controls.left-handed .controls-grid{
+      flex-direction: row-reverse;
+    }
+    .joy-side, .action-side{
+      flex: 1 1 0;
+      display:flex;
+      align-items:center;
+    }
+    .joy-side{ justify-content:flex-start; }
+    .action-side{ justify-content:flex-end; }
+        .joystick{
+      position:relative;
+      width:136px;
+      height:136px;
+      touch-action:none;
+      user-select:none;
+      -webkit-user-select:none;
+    }
+    .joy-range{
+      position:absolute;
+      left:50%;
+      top:50%;
+      width:100px;
+      height:100px;
+      transform:translate(-50%, -50%);
+      border-radius:50%;
+      border:2px solid rgba(15,23,42,.14);
+      background: rgba(15,23,42,.035);
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,.6);
+      pointer-events:none;
+    }
+    .joy-anchor,
+    .joy-mid,
+    .joy-main{
+      position:absolute;
+      left:50%;
+      top:50%;
+      border-radius:50%;
+      background:#000;
+      transform:translate(-50%, -50%);
+      pointer-events:none;
+      will-change:transform,width,height,opacity;
+    }
+    .joy-anchor{
+      width:14px;
+      height:14px;
+      z-index:4;
+      box-shadow:0 0 0 1px rgba(255,255,255,.08);
+    }
+    .joy-mid{
+      opacity:0;
+      z-index:2;
+      transition: opacity .08s linear;
+      box-shadow:0 4px 10px rgba(0,0,0,.12);
+    }
+    .joy-mid1{
+      width:30px;
+      height:30px;
+      z-index:2;
+      opacity:0;
+    }
+    .joy-mid2{
+      width:46px;
+      height:46px;
+      z-index:3;
+      opacity:0;
+    }
+    .joy-main{
+      width:68px;
+      height:68px;
+      z-index:5;
+      box-shadow:0 8px 18px rgba(0,0,0,.18);
+      transition: transform .12s ease;
+    }
+    .joystick.active .joy-main{ transition: none; }
+    .joystick.active .joy-mid{ transition: none; }
+
+    .action-pad{
+      display:flex; flex-direction:column; gap:10px; justify-content:center; align-items:center;
+    }
+    .action-pad button{
+      border:none;
+      border-radius:50%;
+      background:#1e293b;
+      color:white;
+      font-weight:800;
+      width:92px; height:92px;
+      box-shadow:0 8px 16px rgba(0,0,0,.18);
+      user-select:none;
+      -webkit-user-select:none;
+      touch-action:none;
+    }
+    .action-pad button:active{ transform:translateY(1px) scale(.98); }
+    .dodge-btn{
+      background:#7c3aed !important;
+      font-size:15px !important;
+      line-height:1.15;
+      padding:8px;
+      border:2px solid rgba(255,255,255,.25);
+    }
+    .settings-form{ margin-top:12px; display:grid; gap:10px; }
+    .setting-item{ display:flex; align-items:center; justify-content:space-between; gap:12px; padding:10px 12px; border:1px solid rgba(15,23,42,.08); border-radius:12px; background:#f8fafc; }
+    .setting-item .meta{ text-align:left; }
+    .setting-item .title{ font-weight:800; font-size:14px; color:#0f172a; }
+    .setting-item .desc{ font-size:12px; color:#64748b; margin-top:2px; }
+    .setting-item input[type="checkbox"]{ width:20px; height:20px; accent-color:#2563eb; }
+    .setting-item select{ border:1px solid #cbd5e1; border-radius:10px; padding:6px 8px; background:#fff; font-weight:700; }
+    .btn.warn{ background:#ef4444; color:white; }
+
+
+    .overlay{
+      position: fixed; inset:0; z-index:100;
+      display:none; align-items:center; justify-content:center;
+      background: rgba(2,6,23,.45);
+      padding: 20px;
+    }
+    .overlay.show{ display:flex; }
+    .panel{
+      width: min(720px, 95vw);
+      background: rgba(255,255,255,.96);
+      border:1px solid rgba(15,23,42,.08);
+      border-radius: 18px;
+      box-shadow: 0 16px 40px rgba(15,23,42,.25);
+      padding: 18px;
+      text-align:left;
+    }
+    .panel h2{ margin:0 0 10px; font-size:24px; }
+    .panel p{ margin:6px 0; color:#334155; line-height:1.45; }
+    .row-btns{ display:flex; gap:10px; flex-wrap:wrap; margin-top:12px; }
+    .btn{
+      border:none; border-radius:12px;
+      padding:10px 14px;
+      font-weight:800; cursor:pointer;
+      box-shadow:0 6px 12px rgba(0,0,0,.12);
+    }
+    .btn.primary{ background:#22c55e; color:white; }
+    .btn.secondary{ background:#e2e8f0; color:#0f172a; }
+    .btn.link{ background:#3b82f6; color:white; }
+
+    .class-grid{
+      display:grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap:10px;
+      margin-top:10px;
+    }
+    @media (max-width:680px){
+      .class-grid{ grid-template-columns: 1fr; }
+    }
+    .class-card{
+      border:2px solid #cbd5e1;
+      background:#f8fafc;
+      border-radius:14px;
+      padding:12px;
+      cursor:pointer;
+      transition: transform .12s ease, border-color .12s ease, box-shadow .12s ease;
+      text-align:left;
+    }
+    .class-card:hover{ transform:translateY(-1px); box-shadow:0 8px 18px rgba(15,23,42,.08); }
+    .class-card.selected{
+      border-color:#2563eb;
+      background:#eff6ff;
+      box-shadow:0 0 0 3px rgba(37,99,235,.15) inset;
+    }
+    .class-card .name{ font-weight:900; font-size:18px; display:flex; align-items:center; gap:8px; }
+    .class-card .summary{ color:#334155; font-size:13px; margin-top:6px; min-height:34px; }
+    .class-card ul{ margin:8px 0 0 16px; padding:0; color:#334155; font-size:12px; }
+
+    .hud-legend{
+      display:flex; gap:10px; flex-wrap:wrap; margin-top:8px; color:#334155; font-size:13px;
+    }
+    .dot{
+      display:inline-block; width:10px; height:10px; border-radius:50%; margin-right:6px; transform: translateY(1px);
+    }
+    .dot.blue{ background:#2563eb; }
+    .dot.red{ background:#ef4444; }
+
+    .augment-grid{
+      display:grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap:10px;
+      margin-top:12px;
+    }
+    @media (max-width:720px){ .augment-grid{ grid-template-columns:1fr; } }
+    .augment-card{
+      border:2px solid #cbd5e1; border-radius:14px; background:#fff;
+      padding:10px; cursor:pointer; text-align:left;
+      transition: transform .12s ease, border-color .12s ease;
+      display:flex; gap:10px; align-items:flex-start;
+    }
+    .augment-card:hover{ transform:translateY(-1px); border-color:#7c3aed; }
+    .augment-icon{
+      width:54px; height:54px; border-radius:12px;
+      background: linear-gradient(135deg,#ede9fe,#ddd6fe);
+      display:flex; align-items:center; justify-content:center;
+      font-size:28px; flex:0 0 auto; border:1px solid rgba(124,58,237,.18);
+      overflow:hidden;
+    }
+    .augment-icon img{
+      width:100%; height:100%; object-fit:cover; display:block;
+    }
+    .augment-card .title{ font-weight:900; font-size:15px; }
+    .augment-card .desc{ font-size:13px; color:#475569; margin-top:4px; }
+
+    .small{
+      font-size:12px; color:#64748b;
+    }
+    .chip{
+      display:inline-flex; align-items:center; gap:6px;
+      border-radius:999px; padding:4px 10px;
+      background:#eef2ff; color:#3730a3; font-weight:700; font-size:12px;
+    }
+  </style>
+</head>
+<body>
+  <div class="topbar">
+    <span>🎮 이동: 방향키 / WASD</span>
+    <span>|</span>
+    <span>🌀 회피 점프: Space / Shift</span>
+  </div>
+
+  <div class="game-title">🧪 아케인 서바이벌 (프로토타입)</div>
+  <div class="hint">요구사항 반영 버전: rAF 루프 / 생존형 / 캐릭터 선택 / 카메라 이동 / 레벨업 증강 / 회피 점프 무적</div>
+
+  <canvas id="canvas" width="600" height="600"></canvas>
+
+  <div class="controls" id="mobileControls">
+    <div class="controls-grid">
+      <div class="joy-side">
+        <div id="joystick" class="joystick" aria-label="이동 조이스틱" role="application">
+          <div class="joy-range" aria-hidden="true"></div>
+          <div id="joyMid1" class="joy-mid joy-mid1" aria-hidden="true"></div>
+          <div id="joyMid2" class="joy-mid joy-mid2" aria-hidden="true"></div>
+          <div id="joyAnchor" class="joy-anchor" aria-hidden="true"></div>
+          <div id="joyThumb" class="joy-main" aria-hidden="true"></div>
+        </div>
+      </div>
+      <div class="action-side">
+        <div class="action-pad">
+          <button id="dodgeBtn" class="dodge-btn">회피<br>DODGE</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 시작 오버레이 -->
+  <div id="startOverlay" class="overlay show">
+    <div class="panel">
+      <h2>시작 설정</h2>
+      <p>이번 버전은 <b>시간 제한 클리어</b>가 아니라 <b>최대한 오래 생존</b>하는 구조입니다. 파란 적은 위험, 빨간 개체는 경험치(획득용)입니다.</p>
+      <div class="hud-legend">
+        <span><span class="dot blue"></span>파란 적 = 접촉 시 피해</span>
+        <span><span class="dot red"></span>빨간 개체 = 경험치 획득</span>
+        <span class="chip">레벨업 시 증강 선택</span>
+      </div>
+      <div class="class-grid" id="classGrid"></div>
+      <div class="small" style="margin-top:10px;">
+        ※ AI 이미지 적용 예정이면 아래 코드의 <code>CHARACTER_DEFS[*].spriteSheetUrl</code> / <code>AUGMENTS[*].iconUrl</code>에 경로를 넣으면 됩니다.
+      </div>
+      <div class="row-btns">
+        <button id="startBtn" class="btn primary">게임 시작</button>
+        <button id="rankBtn" class="btn link" type="button">랭킹 페이지(연결 예정)</button>
+        <button id="startSettingsBtn" class="btn secondary" type="button">설정</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 게임오버 오버레이 -->
+  <div id="gameOverOverlay" class="overlay">
+    <div class="panel">
+      <h2 id="goTitle">게임 오버</h2>
+      <p id="goMessage"></p>
+      <div class="row-btns">
+        <button id="restartBtn" class="btn primary">다시 시작</button>
+        <button id="backToTitleBtn" class="btn secondary">타이틀로</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 증강 선택 오버레이 -->
+  <div id="augmentOverlay" class="overlay">
+    <div class="panel">
+      <h2>레벨업! 증강 선택</h2>
+      <p>3개 중 1개를 선택하세요. 선택하는 동안 게임은 일시정지됩니다.</p>
+      <div id="augmentGrid" class="augment-grid"></div>
+    </div>
+  </div>
+
+  <!-- 설정 오버레이 -->
+  <div id="settingsOverlay" class="overlay">
+    <div class="panel">
+      <h2>설정</h2>
+      <p>설정창이 열려 있는 동안 <b>게임은 일시정지</b>됩니다. (state.paused 사용) 모바일에서는 하단 설정 버튼 없이 캔버스 우상단 톱니바퀴로만 엽니다.</p>
+      <div class="settings-form" id="settingsForm">
+        <label class="setting-item">
+          <div class="meta">
+            <div class="title">배경 격자 표시</div>
+            <div class="desc">월드 이동감 확인용 그리드 선을 표시합니다.</div>
+          </div>
+          <input type="checkbox" id="optShowGrid" checked>
+        </label>
+
+        <label class="setting-item">
+          <div class="meta">
+            <div class="title">피격 플래시 표시</div>
+            <div class="desc">피격 시 화면 전체 붉은 플래시를 보여줍니다.</div>
+          </div>
+          <input type="checkbox" id="optDamageFlash" checked>
+        </label>
+
+        <label class="setting-item">
+          <div class="meta">
+            <div class="title">전투 이펙트 표시</div>
+            <div class="desc">링 이펙트/피해 텍스트 등 시각 효과를 표시합니다.</div>
+          </div>
+          <input type="checkbox" id="optCombatEffects" checked>
+        </label>
+
+        <label class="setting-item">
+          <div class="meta">
+            <div class="title">모바일 조작 버튼 표시</div>
+            <div class="desc">화면 하단 모바일 버튼 영역의 표시 여부를 전환합니다.</div>
+          </div>
+          <input type="checkbox" id="optMobileControls" checked>
+        </label>
+
+        <label class="setting-item">
+          <div class="meta">
+            <div class="title">모바일 손배치</div>
+            <div class="desc">기본값은 왼손 조이스틱 / 오른손 회피. 왼손 버전은 좌우를 반대로 배치합니다.</div>
+          </div>
+          <select id="optMobileHandedness">
+            <option value="default">기본 (왼손 이동 / 오른손 회피)</option>
+            <option value="left">왼손 버전 (오른손 이동 / 왼손 회피)</option>
+          </select>
+        </label>
+      </div>
+      <div class="row-btns">
+        <button id="settingsCloseBtn" class="btn primary" type="button">저장하고 닫기</button>
+        <button id="settingsResetBtn" class="btn secondary" type="button">기본값</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    /**********************************************************************
+     * 이 파일은 "완성본 프로토타입"입니다.
+     * - requestAnimationFrame 루프 사용
+     * - 생존형 게임 (시간 제한 클리어 X)
+     * - 캐릭터 3종 선택
+     * - 카메라 이동 (월드 스크롤)
+     * - 빨간 경험치 / 파란 적
+     * - 레벨업 증강
+     * - 회피 점프(점프 중 무적)
+     **********************************************************************/
+
+    // =========================================================
+    // 1) 캔버스/기본 유틸
+    // =========================================================
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+
+    const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
+    const lerp = (a, b, t) => a + (b - a) * t;
+    const rand = (min, max) => Math.random() * (max - min) + min;
+    const randInt = (min, max) => Math.floor(rand(min, max + 1));
+    const distSq = (ax, ay, bx, by) => {
+      const dx = ax - bx, dy = ay - by;
+      return dx * dx + dy * dy;
+    };
+
+    function circleHit(a, b) {
+      const r = a.r + b.r;
+      return distSq(a.x, a.y, b.x, b.y) <= r * r;
+    }
+
+    function rectCircleHit(rect, c) {
+      const closestX = clamp(c.x, rect.x, rect.x + rect.w);
+      const closestY = clamp(c.y, rect.y, rect.y + rect.h);
+      const dx = c.x - closestX;
+      const dy = c.y - closestY;
+      return (dx * dx + dy * dy) <= c.r * c.r;
+    }
+
+    // =========================================================
+    // 2) 입력 상태
+    // =========================================================
+    const keys = {
+      ArrowLeft: false, ArrowRight: false, ArrowUp: false, ArrowDown: false,
+      KeyA: false, KeyD: false, KeyW: false, KeyS: false,
+      Space: false, ShiftLeft: false, ShiftRight: false
+    };
+
+    let dodgePressedOnce = false; // 길게 누름 중 중복 발동 방지
+
+    function isMoveLeft()  { return keys.ArrowLeft || keys.KeyA; }
+    function isMoveRight() { return keys.ArrowRight || keys.KeyD; }
+    function isMoveUp()    { return keys.ArrowUp || keys.KeyW; }
+    function isMoveDown()  { return keys.ArrowDown || keys.KeyS; }
+    function isDodgeHeld() { return keys.Space || keys.ShiftLeft || keys.ShiftRight; }
+
+    window.addEventListener('keydown', (e) => {
+      if (e.code in keys) keys[e.code] = true;
+      if (["Space","ArrowUp","ArrowDown","ArrowLeft","ArrowRight"].includes(e.code)) e.preventDefault();
+    }, { passive: false });
+
+    window.addEventListener('keyup', (e) => {
+      if (e.code in keys) keys[e.code] = false;
+      if (!isDodgeHeld()) dodgePressedOnce = false;
+    });
+
+    // 모바일 조작 입력 (가상키 + 조이스틱)
+    const setVirtualKey = (code, isDown) => {
+      keys[code] = isDown;
+      if (!isDodgeHeld()) dodgePressedOnce = false;
+    };
+
+    function bindHoldButton(id, code) {
+      const btn = document.getElementById(id);
+      if (!btn) return;
+      const on = (e) => { e.preventDefault(); setVirtualKey(code, true); };
+      const off = (e) => { e.preventDefault(); setVirtualKey(code, false); };
+      btn.addEventListener('touchstart', on, { passive: false });
+      btn.addEventListener('touchend', off, { passive: false });
+      btn.addEventListener('touchcancel', off, { passive: false });
+      btn.addEventListener('mousedown', on);
+      btn.addEventListener('mouseup', off);
+      btn.addEventListener('mouseleave', off);
+    }
+
+    bindHoldButton('dodgeBtn', 'Space');
+
+    const joystickEl = document.getElementById('joystick');
+    const joyThumbEl = document.getElementById('joyThumb');
+    const joyAnchorEl = document.getElementById('joyAnchor');
+    const joyMid1El = document.getElementById('joyMid1');
+    const joyMid2El = document.getElementById('joyMid2');
+
+    const joystickVisual = {
+      rAnchor: 7,
+      rMain: 34,
+      maxDist: 44
+    };
+
+    const joystickState = {
+      active: false,
+      pointerId: null,
+      cx: 0,
+      cy: 0,
+      radius: joystickVisual.maxDist,
+      dx: 0,
+      dy: 0
+    };
+
+    function setJoyCircle(el, x, y, r) {
+      if (!el) return;
+      el.style.width = `${r * 2}px`;
+      el.style.height = `${r * 2}px`;
+      el.style.transform = `translate(calc(-50% + ${x}px), calc(-50% + ${y}px))`;
+    }
+
+    function setJoyChainVisibility(show) {
+      const v = show ? '1' : '0';
+      if (joyMid1El) joyMid1El.style.opacity = v;
+      if (joyMid2El) joyMid2El.style.opacity = v;
+    }
+
+    function updateJoystickVisualFromOffset(dx, dy, isActive = false) {
+      joystickState.dx = dx;
+      joystickState.dy = dy;
+      const len = Math.hypot(dx, dy);
+      const ratio = joystickState.radius > 0 ? (len / joystickState.radius) : 0;
+
+      if (joystickEl) joystickEl.classList.toggle('active', !!isActive && ratio > 0.02);
+
+      // 고정 작은 원 (중앙)
+      setJoyCircle(joyAnchorEl, 0, 0, joystickVisual.rAnchor);
+
+      // 이동 큰 원
+      setJoyCircle(joyThumbEl, dx, dy, joystickVisual.rMain);
+
+      // 작은 원(A)~큰 원(B) 사이 중간 원 2개 (1/3, 2/3 지점)
+      const t1 = 1 / 3;
+      const t2 = 2 / 3;
+      const c1x = lerp(0, dx, t1);
+      const c1y = lerp(0, dy, t1);
+      const c2x = lerp(0, dx, t2);
+      const c2y = lerp(0, dy, t2);
+
+      const r1 = lerp(joystickVisual.rAnchor, joystickVisual.rMain, t1);
+      const r2 = lerp(joystickVisual.rAnchor, joystickVisual.rMain, t2);
+
+      setJoyCircle(joyMid1El, c1x, c1y, r1);
+      setJoyCircle(joyMid2El, c2x, c2y, r2);
+
+      // 거의 안 움직일 때는 중간 원 숨김 (겹침 방지)
+      setJoyChainVisibility(ratio > 0.08);
+    }
+
+    function resetJoystickVisual() {
+      if (joystickEl) joystickEl.classList.remove('active');
+      updateJoystickVisualFromOffset(0, 0, false);
+      setVirtualKey('ArrowLeft', false);
+      setVirtualKey('ArrowRight', false);
+      setVirtualKey('ArrowUp', false);
+      setVirtualKey('ArrowDown', false);
+    }
+
+    function applyJoystickToKeys(nx, ny) {
+      const dead = 0.22;
+      setVirtualKey('ArrowLeft', nx < -dead);
+      setVirtualKey('ArrowRight', nx > dead);
+      setVirtualKey('ArrowUp', ny < -dead);
+      setVirtualKey('ArrowDown', ny > dead);
+    }
+
+    function updateJoystickFromClient(clientX, clientY) {
+      if (!joystickEl) return;
+      const rect = joystickEl.getBoundingClientRect();
+      joystickState.cx = rect.left + rect.width / 2;
+      joystickState.cy = rect.top + rect.height / 2;
+      const dx = clientX - joystickState.cx;
+      const dy = clientY - joystickState.cy;
+      const len = Math.hypot(dx, dy) || 1;
+      const maxR = joystickState.radius;
+      const clampedLen = Math.min(len, maxR);
+      const nx = dx / len;
+      const ny = dy / len;
+
+      const outDx = nx * clampedLen;
+      const outDy = ny * clampedLen;
+
+      const normX = outDx / maxR;
+      const normY = outDy / maxR;
+
+      updateJoystickVisualFromOffset(outDx, outDy, true);
+      applyJoystickToKeys(normX, normY);
+    }
+
+    function onJoystickPointerDown(e) {
+      if (!joystickEl) return;
+      e.preventDefault();
+      joystickState.active = true;
+      joystickState.pointerId = e.pointerId ?? 'mouse';
+      joystickEl.classList.add('active');
+      try { joystickEl.setPointerCapture?.(e.pointerId); } catch(_) {}
+      updateJoystickFromClient(e.clientX, e.clientY);
+    }
+
+    function onJoystickPointerMove(e) {
+      if (!joystickState.active) return;
+      if (e.pointerId != null && joystickState.pointerId != null && e.pointerId !== joystickState.pointerId) return;
+      e.preventDefault();
+      updateJoystickFromClient(e.clientX, e.clientY);
+    }
+
+    function onJoystickPointerUp(e) {
+      if (!joystickState.active) return;
+      if (e.pointerId != null && joystickState.pointerId != null && e.pointerId !== joystickState.pointerId) return;
+      e.preventDefault?.();
+      joystickState.active = false;
+      joystickState.pointerId = null;
+      resetJoystickVisual();
+    }
+
+    if (joystickEl) {
+      joystickEl.addEventListener('pointerdown', onJoystickPointerDown);
+      window.addEventListener('pointermove', onJoystickPointerMove, { passive: false });
+      window.addEventListener('pointerup', onJoystickPointerUp, { passive: false });
+      window.addEventListener('pointercancel', onJoystickPointerUp, { passive: false });
+      window.addEventListener('blur', resetJoystickVisual);
+      resetJoystickVisual();
+    }
+
+    // =========================================================
+    // 3) AI 이미지(스프라이트/아이콘) 연결을 위한 로더
+    // =========================================================
+    function loadImageSafe(url) {
+      if (!url) return null;
+      const img = new Image();
+      img.src = url;
+      img.onerror = () => console.warn('[asset] load failed:', url);
+      return img;
+    }
+
+    // 캐릭터별 스프라이트시트 메타데이터(예시)
+    // 실제 AI 스프라이트시트 넣을 때: frameW/frameH/rows/frames를 시트에 맞게 수정
+    const CHARACTER_DEFS = {
+      wizard: {
+        id: 'wizard',
+        name: '마법사',
+        emoji: '🧙',
+        summary: '화려한 광역 화력형. 회피 종료 시 마법 폭발이 크게 터집니다.',
+        stats: { moveSpeed: 170, maxHp: 5, dodgeCooldown: 0.95, dodgeDuration: 0.28, dodgeHeight: 22, magnet: 95 },
+        passive: 'arcaneBurst',
+        spriteSheetUrl: '', // 예: 'assets/wizard_sheet.png'
+        spriteMeta: {
+          frameW: 48, frameH: 48,
+          rows: { idle: 0, run: 1, dodge: 2 },
+          frames: { idle: 4, run: 6, dodge: 6 },
+          drawW: 38, drawH: 38
+        }
+      },
+      swordsman: {
+        id: 'swordsman',
+        name: '검사',
+        emoji: '⚔️',
+        summary: '무난하고 안정적인 기본형. HP와 균형 잡힌 회피가 강점입니다.',
+        stats: { moveSpeed: 190, maxHp: 6, dodgeCooldown: 0.85, dodgeDuration: 0.24, dodgeHeight: 18, magnet: 85 },
+        passive: 'steelStep',
+        spriteSheetUrl: '',
+        spriteMeta: {
+          frameW: 48, frameH: 48,
+          rows: { idle: 0, run: 1, dodge: 2 },
+          frames: { idle: 4, run: 6, dodge: 6 },
+          drawW: 38, drawH: 38
+        }
+      },
+      rogue: {
+        id: 'rogue',
+        name: '도적',
+        emoji: '🗡️',
+        summary: '빠른 이동/회피 중심. 총알 튕겨내기(향후 투사체 시스템용) 준비형.',
+        stats: { moveSpeed: 230, maxHp: 4, dodgeCooldown: 0.60, dodgeDuration: 0.30, dodgeHeight: 26, magnet: 100 },
+        passive: 'bulletDeflect',
+        spriteSheetUrl: '',
+        spriteMeta: {
+          frameW: 48, frameH: 48,
+          rows: { idle: 0, run: 1, dodge: 2 },
+          frames: { idle: 4, run: 6, dodge: 6 },
+          drawW: 38, drawH: 38
+        }
+      }
+    };
+
+    // 증강 이미지도 AI 생성 이미지 연결 가능
+    const AUGMENTS = [
+      {
+        id: 'speedBoots', name: '질풍 장화', icon: '👢', iconUrl: '',
+        desc: '이동속도 +12%',
+        apply(g){ g.player.moveSpeed *= 1.12; }
+      },
+      {
+        id: 'biggerMagnet', name: '흡인 자장', icon: '🧲', iconUrl: '',
+        desc: '경험치 자석 범위 +35',
+        apply(g){ g.player.magnetRadius += 35; }
+      },
+      {
+        id: 'dodgeMastery', name: '회피 숙련', icon: '🌀', iconUrl: '',
+        desc: '회피 쿨다운 -12%',
+        apply(g){ g.player.dodge.cooldownBase = Math.max(0.2, g.player.dodge.cooldownBase * 0.88); }
+      },
+      {
+        id: 'ghostStep', name: '유령 발걸음', icon: '👻', iconUrl: '',
+        desc: '회피 무적 시간 +15%',
+        apply(g){ g.player.dodge.durationBase *= 1.15; }
+      },
+      {
+        id: 'vitality', name: '활력 증폭', icon: '❤️', iconUrl: '',
+        desc: '최대 HP +1, 즉시 1 회복',
+        apply(g){
+          g.player.maxHp += 1;
+          g.player.hp = Math.min(g.player.maxHp, g.player.hp + 1);
+        }
+      },
+      {
+        id: 'xpFlow', name: '정수 공명', icon: '🔴', iconUrl: '',
+        desc: '경험치 획득량 +15%',
+        apply(g){ g.player.xpGainMultiplier *= 1.15; }
+      },
+      {
+        id: 'shockwave', name: '충격파 강화', icon: '💥', iconUrl: '',
+        desc: '회피 종료 광역 피해 반경 +25, 피해 +1',
+        apply(g){
+          g.player.burstRadius += 25;
+          g.player.burstDamage += 1;
+        }
+      },
+      {
+        id: 'thorns', name: '역충격', icon: '🛡️', iconUrl: '',
+        desc: '피격 후 짧은 무적 + 넉백 강화',
+        apply(g){
+          g.player.postHitInvuln += 0.12;
+          g.player.hitKnockback += 35;
+        }
+      },
+      {
+        id: 'luckyDrop', name: '행운의 정수', icon: '✨', iconUrl: '',
+        desc: '빨간 경험치 개체 스폰량 증가',
+        apply(g){ g.spawn.xpRateMultiplier *= 1.20; }
+      }
+    ];
+
+    // 이미지 로딩 캐시
+    const assetCache = {
+      classSprites: {},
+      augmentIcons: {}
+    };
+    for (const c of Object.values(CHARACTER_DEFS)) {
+      assetCache.classSprites[c.id] = loadImageSafe(c.spriteSheetUrl);
+    }
+    for (const a of AUGMENTS) {
+      assetCache.augmentIcons[a.id] = loadImageSafe(a.iconUrl);
+    }
+
+    // =========================================================
+    // 4) 상태(게임 전체)
+    // =========================================================
+    const WORLD = { w: 2400, h: 2400 };
+
+    const state = {
+      mode: 'title',          // 'title' | 'playing' | 'gameover'
+      paused: false,          // true면 업데이트 멈춤(증강/수동일시정지)
+      lastTime: 0,
+      selectedClassId: 'swordsman',
+      camera: {
+        x: 0, y: 0,
+        deadzone: { left: 210, right: 390, top: 180, bottom: 420 } // 600x600 기준
+      },
+      world: { ...WORLD },
+      time: {
+        elapsed: 0,
+        survivedSeconds: 0
+      },
+      difficulty: {
+        level: 1
+      },
+      player: null,
+      enemies: [],  // 파란 적(위험)
+      xpNodes: [],  // 빨간 경험치(획득용)
+      projectiles: [], // 플레이어 자동공격 투사체
+      effects: [],  // 이펙트(링, 플래시 등)
+      spawn: {
+        enemyTimer: 0,
+        xpTimer: 0,
+        xpRateMultiplier: 1
+      },
+      ui: {
+        pendingAugments: [],
+        pendingDamageFlash: 0,
+        canvasButtons: { settings: null },
+        settingsPrevPaused: false
+      },
+      settings: {
+        showGrid: true,
+        showDamageFlash: true,
+        showCombatEffects: true,
+        showMobileControls: true,
+        mobileHandedness: 'default' // 'default' | 'left'
+      }
+    };
+
+    // =========================================================
+    // 5) 캐릭터 생성/초기화
+    // =========================================================
+    function createPlayer(classId) {
+      const def = CHARACTER_DEFS[classId];
+
+      const attackDefs = {
+        wizard: {
+          kind: 'projectileAoE',
+          interval: 0.62,
+          range: 330,
+          damage: 2,
+          projectileSpeed: 430,
+          projectileRadius: 7,
+          aoeRadius: 68,
+          color: '#a855f7'
+        },
+        swordsman: {
+          kind: 'sweep',
+          interval: 0.46,
+          range: 88,
+          damage: 2,
+          sweepRadius: 92,
+          sweepArc: Math.PI * 0.95,
+          color: '#f59e0b'
+        },
+        rogue: {
+          kind: 'projectileSingle',
+          interval: 0.28,
+          range: 420,
+          damage: 1,
+          projectileSpeed: 620,
+          projectileRadius: 4,
+          critChance: 0.20,
+          critMult: 2,
+          color: '#38bdf8'
+        }
+      };
+      const attackCfg = attackDefs[classId] || attackDefs.swordsman;
+
+      const p = {
+        classId,
+        name: def.name,
+        emoji: def.emoji,
+        passive: def.passive,
+        x: state.world.w / 2,
+        y: state.world.h / 2,
+        vx: 0,
+        vy: 0,
+        r: 16,
+        facing: 1,
+        moveSpeed: def.stats.moveSpeed,
+        hp: def.stats.maxHp,
+        maxHp: def.stats.maxHp,
+        canBeHit: true,
+        invulnTimer: 0,         // 피격 후 추가 무적
+        postHitInvuln: 0.20,
+        hitKnockback: 110,
+        level: 1,
+        xp: 0,
+        totalXp: 0,
+        xpToNext: 6,
+        xpGainMultiplier: 1,
+        magnetRadius: def.stats.magnet,
+        burstRadius: def.passive === 'arcaneBurst' ? 90 : 55,
+        burstDamage: def.passive === 'arcaneBurst' ? 2 : 1,
+        deflectEnabled: def.passive === 'bulletDeflect',
+        dodge: {
+          active: false,
+          elapsed: 0,
+          cooldown: 0,
+          cooldownBase: def.stats.dodgeCooldown,
+          durationBase: def.stats.dodgeDuration,
+          heightBase: def.stats.dodgeHeight,
+          jumpOffsetY: 0
+        },
+        attack: {
+          ...attackCfg,
+          cooldown: 0,
+          windup: 0,
+          swingFxTimer: 0,
+          aimAngle: 0
+        },
+        anim: {
+          state: 'idle', // idle/run/dodge
+          frame: 0,
+          timer: 0
+        }
+      };
+      return p;
+    }
+
+    function resetRun() {
+      state.world = { ...WORLD };
+      state.player = createPlayer(state.selectedClassId);
+      state.enemies = [];
+      state.xpNodes = [];
+      state.projectiles = [];
+      state.effects = [];
+      state.spawn.enemyTimer = 0.6;
+      state.spawn.xpTimer = 0.8;
+      state.spawn.xpRateMultiplier = 1;
+      state.ui.pendingDamageFlash = 0;
+      state.time.elapsed = 0;
+      state.time.survivedSeconds = 0;
+      state.difficulty.level = 1;
+      state.paused = false;
+      state.mode = 'playing';
+      state.ui.canvasButtons.settings = null;
+      dodgePressedOnce = false;
+      settingsOverlay.classList.remove('show');
+
+      // 시작 직후 주변에 경험치/적 약간 생성
+      for (let i = 0; i < 6; i++) spawnXPNodeNearPlayer(240, 420);
+      for (let i = 0; i < 4; i++) spawnEnemyOffscreen();
+
+      // 카메라 초기값
+      state.camera.x = clamp(state.player.x - canvas.width / 2, 0, state.world.w - canvas.width);
+      state.camera.y = clamp(state.player.y - canvas.height / 2, 0, state.world.h - canvas.height);
+    }
+
+    // =========================================================
+    // 6) 시작/오버레이 UI
+    // =========================================================
+    const startOverlay = document.getElementById('startOverlay');
+    const gameOverOverlay = document.getElementById('gameOverOverlay');
+    const augmentOverlay = document.getElementById('augmentOverlay');
+    const classGrid = document.getElementById('classGrid');
+    const augmentGrid = document.getElementById('augmentGrid');
+    const goMessage = document.getElementById('goMessage');
+
+    const settingsOverlay = document.getElementById('settingsOverlay');
+    const settingsForm = document.getElementById('settingsForm');
+    const optShowGrid = document.getElementById('optShowGrid');
+    const optDamageFlash = document.getElementById('optDamageFlash');
+    const optCombatEffects = document.getElementById('optCombatEffects');
+    const optMobileControls = document.getElementById('optMobileControls');
+    const optMobileHandedness = document.getElementById('optMobileHandedness');
+
+    function syncSettingsUIFromState() {
+      optShowGrid.checked = !!state.settings.showGrid;
+      optDamageFlash.checked = !!state.settings.showDamageFlash;
+      optCombatEffects.checked = !!state.settings.showCombatEffects;
+      optMobileControls.checked = !!state.settings.showMobileControls;
+      if (optMobileHandedness) optMobileHandedness.value = state.settings.mobileHandedness || 'default';
+      applySettingsVisuals();
+    }
+
+    function applySettingsFromForm() {
+      state.settings.showGrid = !!optShowGrid.checked;
+      state.settings.showDamageFlash = !!optDamageFlash.checked;
+      state.settings.showCombatEffects = !!optCombatEffects.checked;
+      state.settings.showMobileControls = !!optMobileControls.checked;
+      state.settings.mobileHandedness = optMobileHandedness ? optMobileHandedness.value : (state.settings.mobileHandedness || 'default');
+      applySettingsVisuals();
+    }
+
+    function applySettingsVisuals() {
+      const controlsEl = document.querySelector('.controls');
+      if (controlsEl) {
+        controlsEl.style.display = state.settings.showMobileControls ? '' : 'none';
+        controlsEl.classList.toggle('left-handed', (state.settings.mobileHandedness || 'default') === 'left');
+      }
+    }
+
+    function canOpenSettingsNow() {
+      if (gameOverOverlay.classList.contains('show')) return false;
+      if (augmentOverlay.classList.contains('show')) return false;
+      return true;
+    }
+
+    function openSettingsOverlay(source = 'unknown') {
+      if (!canOpenSettingsNow()) return;
+      syncSettingsUIFromState();
+      settingsOverlay.dataset.source = source;
+      settingsOverlay.classList.add('show');
+      if (state.mode === 'playing') {
+        state.ui.settingsPrevPaused = state.paused;
+        state.paused = true;
+      }
+    }
+
+    function closeSettingsOverlay({ save = true } = {}) {
+      if (save) applySettingsFromForm();
+      settingsOverlay.classList.remove('show');
+      if (state.mode === 'playing') {
+        state.paused = !!state.ui.settingsPrevPaused;
+      }
+    }
+
+    document.getElementById('startSettingsBtn').addEventListener('click', () => {
+      openSettingsOverlay('title');
+    });
+
+    document.getElementById('settingsCloseBtn').addEventListener('click', () => {
+      closeSettingsOverlay({ save: true });
+    });
+
+    document.getElementById('settingsResetBtn').addEventListener('click', () => {
+      optShowGrid.checked = true;
+      optDamageFlash.checked = true;
+      optCombatEffects.checked = true;
+      optMobileControls.checked = true;
+      if (optMobileHandedness) optMobileHandedness.value = 'default';
+      applySettingsFromForm();
+    });
+
+    settingsOverlay.addEventListener('click', (e) => {
+      if (e.target === settingsOverlay) closeSettingsOverlay({ save: true });
+    });
+
+    function canvasPointFromEvent(e) {
+      const rect = canvas.getBoundingClientRect();
+      const clientX = (e.touches && e.touches[0]) ? e.touches[0].clientX : e.clientX;
+      const clientY = (e.touches && e.touches[0]) ? e.touches[0].clientY : e.clientY;
+      return {
+        x: (clientX - rect.left) * (canvas.width / rect.width),
+        y: (clientY - rect.top) * (canvas.height / rect.height)
+      };
+    }
+
+    function pointInRect(pt, r) {
+      return !!r && pt.x >= r.x && pt.x <= (r.x + r.w) && pt.y >= r.y && pt.y <= (r.y + r.h);
+    }
+
+    function handleCanvasSettingsTap(e) {
+      if (state.mode !== 'playing') return;
+      const pt = canvasPointFromEvent(e);
+      const gearRect = state.ui.canvasButtons.settings;
+      if (pointInRect(pt, gearRect)) {
+        e.preventDefault?.();
+        openSettingsOverlay('canvasGear');
+      }
+    }
+
+    canvas.addEventListener('click', handleCanvasSettingsTap);
+    canvas.addEventListener('touchstart', handleCanvasSettingsTap, { passive: false });
+
+    function renderClassCards() {
+      classGrid.innerHTML = '';
+      for (const c of Object.values(CHARACTER_DEFS)) {
+        const card = document.createElement('button');
+        card.type = 'button';
+        card.className = 'class-card' + (state.selectedClassId === c.id ? ' selected' : '');
+        card.innerHTML = `
+          <div class="name">${c.emoji} ${c.name}</div>
+          <div class="summary">${c.summary}</div>
+          <ul>
+            <li>이동속도: ${c.stats.moveSpeed}</li>
+            <li>HP: ${c.stats.maxHp}</li>
+            <li>회피 쿨다운: ${(c.stats.dodgeCooldown).toFixed(2)}초</li>
+          </ul>
+        `;
+        card.addEventListener('click', () => {
+          state.selectedClassId = c.id;
+          renderClassCards();
+    syncSettingsUIFromState();
+        });
+        classGrid.appendChild(card);
+      }
+    }
+    renderClassCards();
+
+    document.getElementById('startBtn').addEventListener('click', () => {
+      startOverlay.classList.remove('show');
+      resetRun();
+    });
+
+    document.getElementById('rankBtn').addEventListener('click', () => {
+      alert('현재 프로토타입에서는 랭킹 연동을 비활성화했습니다.\n(원하면 다음 단계에서 생존 시간 저장 방식으로 다시 연결 가능)');
+    });
+
+    document.getElementById('restartBtn').addEventListener('click', () => {
+      gameOverOverlay.classList.remove('show');
+      resetRun();
+    });
+
+    document.getElementById('backToTitleBtn').addEventListener('click', () => {
+      gameOverOverlay.classList.remove('show');
+      state.mode = 'title';
+      state.paused = false;
+      startOverlay.classList.add('show');
+      settingsOverlay.classList.remove('show');
+      renderClassCards();
+    });
+
+    function openAugmentChoices() {
+      settingsOverlay.classList.remove('show');
+      state.paused = true;
+      augmentOverlay.classList.add('show');
+
+      // 중복 없이 3개 선택
+      const pool = [...AUGMENTS];
+      const picks = [];
+      while (pool.length && picks.length < 3) {
+        const idx = randInt(0, pool.length - 1);
+        picks.push(pool.splice(idx, 1)[0]);
+      }
+      state.ui.pendingAugments = picks;
+
+      augmentGrid.innerHTML = '';
+      for (const aug of picks) {
+        const iconImg = assetCache.augmentIcons[aug.id];
+        const iconHtml = (iconImg && iconImg.src)
+          ? `<img src="${iconImg.src}" alt="${aug.name}">`
+          : `<span>${aug.icon}</span>`;
+
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'augment-card';
+        btn.innerHTML = `
+          <div class="augment-icon">${iconHtml}</div>
+          <div>
+            <div class="title">${aug.name}</div>
+            <div class="desc">${aug.desc}</div>
+          </div>
+        `;
+        btn.addEventListener('click', () => {
+          aug.apply(state);
+          state.paused = false;
+          augmentOverlay.classList.remove('show');
+          state.ui.pendingAugments = [];
+        });
+        augmentGrid.appendChild(btn);
+      }
+    }
+
+    function showGameOver() {
+      settingsOverlay.classList.remove('show');
+      state.mode = 'gameover';
+      state.paused = true;
+      const p = state.player;
+      const time = state.time.elapsed.toFixed(1);
+      goMessage.textContent =
+`생존 시간: ${time}초
+레벨: ${p.level}
+획득 경험치 총량: ${Math.floor(p.totalXp || 0)}
+캐릭터: ${p.emoji} ${p.name}
+
+다시 시작하거나 타이틀로 돌아가세요.`;
+      gameOverOverlay.classList.add('show');
+    }
+
+    // =========================================================
+    // 7) 스폰/엔티티 생성 (파란 적 / 빨간 경험치)
+    // =========================================================
+    function spawnEnemyAt(x, y) {
+      state.enemies.push({
+        kind: 'enemy',
+        x, y, r: rand(13, 18),
+        hp: 2,
+        speed: rand(55, 95),
+        damage: 1,
+        color: '#2563eb',
+        pulse: rand(0, Math.PI * 2),
+        hitFlash: 0
+      });
+    }
+
+    function spawnEnemyOffscreen() {
+      const p = state.player;
+      const cx = state.camera.x + canvas.width / 2;
+      const cy = state.camera.y + canvas.height / 2;
+      // 화면 바깥 원형 범위에 생성
+      const angle = rand(0, Math.PI * 2);
+      const radius = rand(380, 560);
+      const x = clamp(cx + Math.cos(angle) * radius, 30, state.world.w - 30);
+      const y = clamp(cy + Math.sin(angle) * radius, 30, state.world.h - 30);
+      spawnEnemyAt(x, y);
+    }
+
+    function spawnXPNode(x, y, value = 1) {
+      state.xpNodes.push({
+        kind: 'xp',
+        x, y, r: rand(8, 11),
+        value,
+        color: '#ef4444',
+        vx: rand(-22, 22),
+        vy: rand(-22, 22),
+        life: rand(20, 35),
+        pulse: rand(0, Math.PI * 2)
+      });
+    }
+
+    function spawnXPNodeNearPlayer(minR, maxR) {
+      const p = state.player;
+      const angle = rand(0, Math.PI * 2);
+      const radius = rand(minR, maxR);
+      const x = clamp(p.x + Math.cos(angle) * radius, 20, state.world.w - 20);
+      const y = clamp(p.y + Math.sin(angle) * radius, 20, state.world.h - 20);
+      spawnXPNode(x, y, 1);
+    }
+
+    function emitRing(x, y, color, maxR = 70, duration = 0.25, lineWidth = 4) {
+      state.effects.push({
+        type: 'ring',
+        x, y,
+        color,
+        maxR,
+        duration,
+        elapsed: 0,
+        lineWidth
+      });
+    }
+
+    function emitDamageText(x, y, txt, color = '#ef4444') {
+      state.effects.push({
+        type: 'text',
+        x, y, txt, color,
+        elapsed: 0,
+        duration: 0.5
+      });
+    }
+
+    // =========================================================
+    // 8) 회피 점프(무적) + 클래스 패시브 처리
+    // =========================================================
+    function tryStartDodge() {
+      const p = state.player;
+      if (!p || state.mode !== 'playing' || state.paused) return;
+      if (p.dodge.active) return;
+      if (p.dodge.cooldown > 0) return;
+
+      p.dodge.active = true;
+      p.dodge.elapsed = 0;
+      p.dodge.cooldown = p.dodge.cooldownBase;
+      p.canBeHit = false;
+      emitRing(p.x, p.y, 'rgba(124,58,237,0.55)', 36, 0.15, 3);
+
+      // 도적(향후 투사체 시스템용) 표식 이펙트
+      if (p.deflectEnabled) {
+        emitRing(p.x, p.y, 'rgba(14,165,233,0.45)', 48, 0.18, 2);
+      }
+    }
+
+    function finishDodge() {
+      const p = state.player;
+      if (!p) return;
+
+      p.dodge.active = false;
+      p.dodge.elapsed = 0;
+      p.dodge.jumpOffsetY = 0;
+      p.canBeHit = p.invulnTimer <= 0;
+
+      // 클래스별 회피 종료 효과 (적이 있으면 피해 + XP 드롭)
+      let burstRadius = p.burstRadius;
+      let burstDamage = p.burstDamage;
+      if (p.passive === 'steelStep') {
+        burstRadius += 12;
+      } else if (p.passive === 'bulletDeflect') {
+        burstRadius += 4;
+      }
+      emitRing(p.x, p.y, 'rgba(250,204,21,0.45)', burstRadius, 0.22, 4);
+
+      for (let i = state.enemies.length - 1; i >= 0; i--) {
+        const e = state.enemies[i];
+        const r = burstRadius + e.r;
+        if (distSq(p.x, p.y, e.x, e.y) <= r * r) {
+          e.hp -= burstDamage;
+          // 넉백
+          const dx = e.x - p.x;
+          const dy = e.y - p.y;
+          const len = Math.hypot(dx, dy) || 1;
+          e.x += (dx / len) * 20;
+          e.y += (dy / len) * 20;
+          emitDamageText(e.x, e.y - 8, `-${burstDamage}`, '#f59e0b');
+
+          if (e.hp <= 0) {
+            for (let k = 0; k < randInt(1, 2); k++) {
+              spawnXPNode(e.x + rand(-8, 8), e.y + rand(-8, 8), 1);
+            }
+            state.enemies.splice(i, 1);
+          }
+        }
+      }
+    }
+
+    function dealDamageToEnemy(enemy, damage, hitColor = '#ef4444') {
+      if (!enemy || enemy.hp <= 0) return false;
+      enemy.hp -= damage;
+      emitDamageText(enemy.x, enemy.y - 8, `-${damage}`, hitColor);
+      enemy.hitFlash = 0.08;
+      if (enemy.hp <= 0) {
+        enemy.hp = 0;
+        for (let k = 0; k < randInt(1, 2); k++) {
+          spawnXPNode(enemy.x + rand(-8, 8), enemy.y + rand(-8, 8), 1);
+        }
+        return true;
+      }
+      return false;
+    }
+
+    function removeDeadEnemies() {
+      for (let i = state.enemies.length - 1; i >= 0; i--) {
+        if (state.enemies[i].hp <= 0) state.enemies.splice(i, 1);
+      }
+    }
+
+    function findNearestEnemyWithin(px, py, maxRange) {
+      let best = null;
+      let bestD2 = maxRange * maxRange;
+      for (const e of state.enemies) {
+        if (e.hp <= 0) continue;
+        const d2 = distSq(px, py, e.x, e.y);
+        if (d2 <= bestD2) {
+          bestD2 = d2;
+          best = e;
+        }
+      }
+      return best;
+    }
+
+    function spawnPlayerProjectile({ x, y, tx, ty, speed, radius, damage, color, kind, aoeRadius = 0 }) {
+      const dx = tx - x, dy = ty - y;
+      const len = Math.hypot(dx, dy) || 1;
+      state.projectiles.push({
+        x, y,
+        vx: (dx / len) * speed,
+        vy: (dy / len) * speed,
+        r: radius,
+        damage,
+        color,
+        kind, // 'wizardAoE' | 'rogueSingle'
+        aoeRadius,
+        life: 1.2,
+        pulse: rand(0, Math.PI * 2)
+      });
+    }
+
+    function performAutoAttack() {
+      const p = state.player;
+      if (!p || state.mode !== 'playing') return;
+      if (state.enemies.length === 0) return;
+      if (p.dodge.active) return; // 회피 중 공격 쉬기 (입력 감각 보호)
+
+      const atk = p.attack;
+      const target = findNearestEnemyWithin(p.x, p.y, atk.range);
+      if (!target) return;
+
+      atk.aimAngle = Math.atan2(target.y - p.y, target.x - p.x);
+
+      if (atk.kind === 'sweep') {
+        atk.swingFxTimer = 0.14;
+        emitRing(p.x, p.y, 'rgba(245,158,11,0.28)', atk.sweepRadius, 0.18, 3);
+
+        for (const e of state.enemies) {
+          const dx = e.x - p.x;
+          const dy = e.y - p.y;
+          const d = Math.hypot(dx, dy) || 1;
+          if (d > atk.sweepRadius + e.r) continue;
+
+          const ang = Math.atan2(dy, dx);
+          let diff = ang - atk.aimAngle;
+          while (diff > Math.PI) diff -= Math.PI * 2;
+          while (diff < -Math.PI) diff += Math.PI * 2;
+          if (Math.abs(diff) <= atk.sweepArc / 2) {
+            dealDamageToEnemy(e, atk.damage, '#f59e0b');
+            const nx = dx / d, ny = dy / d;
+            e.x += nx * 18;
+            e.y += ny * 18;
+          }
+        }
+        removeDeadEnemies();
+      } else if (atk.kind === 'projectileAoE') {
+        spawnPlayerProjectile({
+          x: p.x, y: p.y - 6,
+          tx: target.x, ty: target.y,
+          speed: atk.projectileSpeed,
+          radius: atk.projectileRadius,
+          damage: atk.damage,
+          color: atk.color,
+          kind: 'wizardAoE',
+          aoeRadius: atk.aoeRadius
+        });
+      } else if (atk.kind === 'projectileSingle') {
+        let dmg = atk.damage;
+        if (Math.random() < (atk.critChance || 0)) {
+          dmg = Math.round(dmg * (atk.critMult || 2));
+          emitDamageText(p.x, p.y - 26, '치명!', '#38bdf8');
+        }
+        spawnPlayerProjectile({
+          x: p.x, y: p.y - 4,
+          tx: target.x, ty: target.y,
+          speed: atk.projectileSpeed,
+          radius: atk.projectileRadius,
+          damage: dmg,
+          color: atk.color,
+          kind: 'rogueSingle'
+        });
+      }
+    }
+
+    function updateAutoCombat(dt) {
+      const p = state.player;
+      if (!p) return;
+      const atk = p.attack;
+      atk.cooldown = Math.max(0, atk.cooldown - dt);
+      atk.swingFxTimer = Math.max(0, atk.swingFxTimer - dt);
+
+      if (atk.cooldown <= 0) {
+        performAutoAttack();
+        atk.cooldown = Math.max(0.08, atk.interval);
+      }
+    }
+
+    function explodeWizardProjectile(prj, hitX, hitY) {
+      emitRing(hitX, hitY, 'rgba(168,85,247,0.45)', prj.aoeRadius || 60, 0.18, 4);
+      for (const e of state.enemies) {
+        const rr = (prj.aoeRadius || 60) + e.r;
+        if (distSq(hitX, hitY, e.x, e.y) <= rr * rr) {
+          dealDamageToEnemy(e, prj.damage, '#a855f7');
+        }
+      }
+      removeDeadEnemies();
+    }
+
+    function updateProjectiles(dt) {
+      const p = state.player;
+      for (let i = state.projectiles.length - 1; i >= 0; i--) {
+        const prj = state.projectiles[i];
+        prj.life -= dt;
+        prj.pulse += dt * 10;
+        prj.x += prj.vx * dt;
+        prj.y += prj.vy * dt;
+
+        let remove = prj.life <= 0;
+        if (prj.x < -50 || prj.x > state.world.w + 50 || prj.y < -50 || prj.y > state.world.h + 50) remove = true;
+
+        for (let j = 0; j < state.enemies.length && !remove; j++) {
+          const e = state.enemies[j];
+          if (circleHit({ x: prj.x, y: prj.y, r: prj.r }, e)) {
+            if (prj.kind === 'wizardAoE') {
+              explodeWizardProjectile(prj, prj.x, prj.y);
+            } else {
+              dealDamageToEnemy(e, prj.damage, '#38bdf8');
+              removeDeadEnemies();
+              emitRing(prj.x, prj.y, 'rgba(56,189,248,0.35)', 18, 0.10, 2);
+            }
+            remove = true;
+          }
+        }
+
+        if (remove) state.projectiles.splice(i, 1);
+      }
+    }
+
+    // =========================================================
+    // 9) 레벨/경험치
+    // =========================================================
+    function gainXP(amount) {
+      const p = state.player;
+      const gained = amount * p.xpGainMultiplier;
+      p.xp += gained;
+      p.totalXp += gained;
+
+      while (p.xp >= p.xpToNext) {
+        p.xp -= p.xpToNext;
+        p.level += 1;
+        p.xpToNext = Math.floor(6 + (p.level - 1) * 3.2);
+        openAugmentChoices();
+        emitRing(p.x, p.y, 'rgba(239,68,68,0.45)', 80, 0.25, 4);
+      }
+    }
+
+    // =========================================================
+    // 10) 업데이트 로직 (dt 초 단위)
+    // =========================================================
+    function update(dt) {
+      if (state.mode !== 'playing') return;
+      if (state.paused) return;
+
+      const p = state.player;
+      state.time.elapsed += dt;
+      state.time.survivedSeconds = Math.floor(state.time.elapsed);
+      state.difficulty.level = 1 + Math.floor(state.time.elapsed / 20);
+
+      if (state.settings.showDamageFlash && state.ui.pendingDamageFlash > 0) {
+        state.ui.pendingDamageFlash = Math.max(0, state.ui.pendingDamageFlash - dt);
+      }
+
+      // 입력 기반 회피 시작 (한 번 누를 때 1회)
+      if (isDodgeHeld()) {
+        if (!dodgePressedOnce) {
+          tryStartDodge();
+          dodgePressedOnce = true;
+        }
+      } else {
+        dodgePressedOnce = false;
+      }
+
+      // 이동 벡터 계산
+      let mx = 0, my = 0;
+      if (isMoveLeft())  mx -= 1;
+      if (isMoveRight()) mx += 1;
+      if (isMoveUp())    my -= 1;
+      if (isMoveDown())  my += 1;
+
+      if (mx !== 0 || my !== 0) {
+        const len = Math.hypot(mx, my);
+        mx /= len; my /= len;
+      }
+
+      // 캐릭터 facing(좌우)
+      if (mx < -0.01) p.facing = -1;
+      else if (mx > 0.01) p.facing = 1;
+
+      // 회피/무적 업데이트
+      if (p.dodge.cooldown > 0) p.dodge.cooldown = Math.max(0, p.dodge.cooldown - dt);
+      if (p.invulnTimer > 0) {
+        p.invulnTimer = Math.max(0, p.invulnTimer - dt);
+        p.canBeHit = p.dodge.active ? false : (p.invulnTimer <= 0);
+      }
+
+      if (p.dodge.active) {
+        p.dodge.elapsed += dt;
+        const t = clamp(p.dodge.elapsed / p.dodge.durationBase, 0, 1);
+        // 자연스러운 점프 높이
+        p.dodge.jumpOffsetY = Math.sin(Math.PI * t) * p.dodge.heightBase;
+
+        // 회피 중 이동 살짝 가속(캐릭터별 회피 감각 향상)
+        const dodgeMoveBoost = (p.classId === 'rogue') ? 1.65 : (p.classId === 'wizard' ? 1.15 : 1.30);
+        p.x += mx * p.moveSpeed * dodgeMoveBoost * dt;
+        p.y += my * p.moveSpeed * dodgeMoveBoost * dt;
+
+        if (t >= 1) {
+          finishDodge();
+        }
+      } else {
+        p.dodge.jumpOffsetY = 0;
+        p.x += mx * p.moveSpeed * dt;
+        p.y += my * p.moveSpeed * dt;
+      }
+
+      // 월드 경계 (플레이어는 월드 밖으로 나가지 않음)
+      p.x = clamp(p.x, p.r, state.world.w - p.r);
+      p.y = clamp(p.y, p.r, state.world.h - p.r);
+
+      // 카메라 업데이트 (deadzone 방식)
+      updateCameraByDeadzone();
+
+      // 플레이어 자동 공격 / 투사체 업데이트
+      updateAutoCombat(dt);
+      updateProjectiles(dt);
+
+      // 애니메이션 프레임 업데이트
+      updatePlayerAnimation(dt, Math.hypot(mx, my));
+
+      // 스폰 타이머(시간이 지날수록 밀도 상승)
+      const enemySpawnBase = Math.max(0.18, 0.90 - state.time.elapsed * 0.01);
+      const xpSpawnBase = Math.max(0.35, (1.6 / state.spawn.xpRateMultiplier) - state.time.elapsed * 0.002);
+
+      state.spawn.enemyTimer -= dt;
+      if (state.spawn.enemyTimer <= 0) {
+        state.spawn.enemyTimer = enemySpawnBase;
+        // 시간이 지날수록 한 번에 더 많이 생성
+        const burst = (state.time.elapsed > 45 && Math.random() < 0.35) ? 2 : 1;
+        for (let i = 0; i < burst; i++) spawnEnemyOffscreen();
+      }
+
+      state.spawn.xpTimer -= dt;
+      if (state.spawn.xpTimer <= 0) {
+        state.spawn.xpTimer = xpSpawnBase;
+        const num = (Math.random() < 0.25) ? 2 : 1;
+        for (let i = 0; i < num; i++) spawnXPNodeNearPlayer(220, 520);
+      }
+
+      // 파란 적 업데이트 (추적)
+      for (let i = state.enemies.length - 1; i >= 0; i--) {
+        const e = state.enemies[i];
+        e.pulse += dt * 3;
+        if (e.hitFlash > 0) e.hitFlash = Math.max(0, e.hitFlash - dt);
+        const dx = p.x - e.x;
+        const dy = p.y - e.y;
+        const len = Math.hypot(dx, dy) || 1;
+
+        // 약간의 난수 흔들림으로 너무 일직선이지 않게
+        const jitter = Math.sin(e.pulse) * 0.18;
+        const nx = dx / len;
+        const ny = dy / len;
+        const tx = -ny;
+        const ty = nx;
+        const moveDirX = nx + tx * jitter * 0.25;
+        const moveDirY = ny + ty * jitter * 0.25;
+
+        const diffBoost = 1 + (state.time.elapsed / 120);
+        e.x += moveDirX * e.speed * diffBoost * dt;
+        e.y += moveDirY * e.speed * diffBoost * dt;
+        e.x = clamp(e.x, e.r, state.world.w - e.r);
+        e.y = clamp(e.y, e.r, state.world.h - e.r);
+
+        // 접촉 피격
+        if (circleHit({x:p.x, y:p.y, r:p.r - 2}, e)) {
+          if (p.canBeHit) {
+            p.hp -= e.damage;
+            p.invulnTimer = p.postHitInvuln;
+            p.canBeHit = false;
+            state.ui.pendingDamageFlash = 0.12;
+            emitDamageText(p.x, p.y - 18, `-${e.damage} HP`, '#ef4444');
+
+            // 피격 넉백
+            const kdx = p.x - e.x;
+            const kdy = p.y - e.y;
+            const klen = Math.hypot(kdx, kdy) || 1;
+            p.x += (kdx / klen) * p.hitKnockback * dt;
+            p.y += (kdy / klen) * p.hitKnockback * dt;
+
+            if (p.hp <= 0) {
+              p.hp = 0;
+              showGameOver();
+              return;
+            }
+          }
+        }
+      }
+
+      // 빨간 경험치 개체 업데이트 (흔들림 + 자석)
+      const magnetSq = p.magnetRadius * p.magnetRadius;
+      for (let i = state.xpNodes.length - 1; i >= 0; i--) {
+        const xpn = state.xpNodes[i];
+        xpn.pulse += dt * 4.5;
+        xpn.life -= dt;
+
+        // 기본 흔들림
+        xpn.x += xpn.vx * dt + Math.cos(xpn.pulse) * 8 * dt;
+        xpn.y += xpn.vy * dt + Math.sin(xpn.pulse * 1.3) * 8 * dt;
+
+        // 월드 경계 바운스
+        if (xpn.x < xpn.r || xpn.x > state.world.w - xpn.r) xpn.vx *= -1;
+        if (xpn.y < xpn.r || xpn.y > state.world.h - xpn.r) xpn.vy *= -1;
+        xpn.x = clamp(xpn.x, xpn.r, state.world.w - xpn.r);
+        xpn.y = clamp(xpn.y, xpn.r, state.world.h - xpn.r);
+
+        // 자석 흡수
+        const d2 = distSq(p.x, p.y, xpn.x, xpn.y);
+        if (d2 < magnetSq) {
+          const dx = p.x - xpn.x, dy = p.y - xpn.y;
+          const len = Math.hypot(dx, dy) || 1;
+          const force = clamp(120 + (p.magnetRadius - len) * 1.8, 120, 400);
+          xpn.x += (dx / len) * force * dt;
+          xpn.y += (dy / len) * force * dt;
+        }
+
+        // 획득
+        if (circleHit({x:p.x, y:p.y, r:p.r + 2}, xpn)) {
+          gainXP(xpn.value);
+          emitRing(xpn.x, xpn.y, 'rgba(239,68,68,0.35)', 28, 0.16, 3);
+          state.xpNodes.splice(i, 1);
+          continue;
+        }
+
+        // 너무 오래 살아있으면 제거(메모리 누적 방지)
+        if (xpn.life <= 0) {
+          state.xpNodes.splice(i, 1);
+        }
+      }
+
+      // 이펙트 업데이트
+      for (let i = state.effects.length - 1; i >= 0; i--) {
+        const ef = state.effects[i];
+        ef.elapsed += dt;
+        if (ef.elapsed >= ef.duration) state.effects.splice(i, 1);
+      }
+
+      // 적/경험치 개체 너무 많아지면 오래된 것 일부 정리 (성능 안전장치)
+      if (state.enemies.length > 220) state.enemies.splice(0, state.enemies.length - 220);
+      if (state.xpNodes.length > 260) state.xpNodes.splice(0, state.xpNodes.length - 260);
+    }
+
+    function updateCameraByDeadzone() {
+      const p = state.player;
+      const cam = state.camera;
+      const dz = cam.deadzone;
+
+      const screenX = p.x - cam.x;
+      const screenY = p.y - cam.y;
+
+      if (screenX < dz.left) cam.x = p.x - dz.left;
+      if (screenX > dz.right) cam.x = p.x - dz.right;
+      if (screenY < dz.top) cam.y = p.y - dz.top;
+      if (screenY > dz.bottom) cam.y = p.y - dz.bottom;
+
+      cam.x = clamp(cam.x, 0, state.world.w - canvas.width);
+      cam.y = clamp(cam.y, 0, state.world.h - canvas.height);
+    }
+
+    function updatePlayerAnimation(dt, moveLen) {
+      const p = state.player;
+      let next = 'idle';
+      if (p.dodge.active) next = 'dodge';
+      else if (moveLen > 0.01) next = 'run';
+
+      if (p.anim.state !== next) {
+        p.anim.state = next;
+        p.anim.frame = 0;
+        p.anim.timer = 0;
+      }
+
+      const meta = CHARACTER_DEFS[p.classId].spriteMeta;
+      if (p.anim.state === 'dodge') {
+        const count = meta.frames.dodge || 1;
+        const t = clamp(p.dodge.elapsed / Math.max(0.001, p.dodge.durationBase), 0, 1);
+        p.anim.frame = Math.min(count - 1, Math.floor(t * count));
+        return;
+      }
+
+      const fps = (p.anim.state === 'run') ? 10 : 5;
+      const frameDur = 1 / fps;
+      p.anim.timer += dt;
+      while (p.anim.timer >= frameDur) {
+        p.anim.timer -= frameDur;
+        const count = meta.frames[p.anim.state] || 1;
+        p.anim.frame = (p.anim.frame + 1) % count;
+      }
+    }
+
+    // =========================================================
+    // 11) 렌더링
+    // =========================================================
+    function worldToScreen(x, y) {
+      return { x: x - state.camera.x, y: y - state.camera.y };
+    }
+
+    function render() {
+      // 배경
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      renderWorldBackground();
+
+      if (state.mode === 'title') {
+        state.ui.canvasButtons.settings = null;
+        // 타이틀 상태에서도 월드 느낌만 살짝 렌더
+        renderTitlePreview();
+        return;
+      }
+
+      state.ui.canvasButtons.settings = null;
+
+      // 월드 오브젝트
+      renderXPNodes();
+      renderEnemies();
+      renderProjectiles();
+      renderEffects();
+      renderPlayer();
+
+      // HUD
+      renderHUD();
+
+      // 데미지 플래시
+      if (state.ui.pendingDamageFlash > 0) {
+        ctx.save();
+        ctx.fillStyle = `rgba(239,68,68,${Math.min(0.25, state.ui.pendingDamageFlash * 2.2)})`;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.restore();
+      }
+
+      // 일시정지 표시
+      if (state.paused && state.mode === 'playing' && !augmentOverlay.classList.contains('show') && !settingsOverlay.classList.contains('show')) {
+        ctx.save();
+        ctx.fillStyle = 'rgba(2,6,23,0.28)';
+        ctx.fillRect(0,0,canvas.width,canvas.height);
+        ctx.fillStyle = '#fff';
+        ctx.font = 'bold 28px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('일시정지', canvas.width/2, canvas.height/2);
+        ctx.font = '14px sans-serif';
+        ctx.fillText('설정 버튼 또는 톱니바퀴로 설정창 열기', canvas.width/2, canvas.height/2 + 24);
+        ctx.restore();
+      }
+    }
+
+    function renderWorldBackground() {
+      // 기본 바탕
+      ctx.save();
+      ctx.fillStyle = '#0b1020';
+      ctx.fillRect(0,0,canvas.width,canvas.height);
+
+      // 그리드 (카메라 이동 확인용)
+      if (state.settings.showGrid) {
+        const grid = 80;
+        const startX = - (state.camera.x % grid);
+        const startY = - (state.camera.y % grid);
+
+        ctx.strokeStyle = 'rgba(148,163,184,0.12)';
+        ctx.lineWidth = 1;
+        for (let x = startX; x <= canvas.width; x += grid) {
+          ctx.beginPath();
+          ctx.moveTo(x, 0);
+          ctx.lineTo(x, canvas.height);
+          ctx.stroke();
+        }
+        for (let y = startY; y <= canvas.height; y += grid) {
+          ctx.beginPath();
+          ctx.moveTo(0, y);
+          ctx.lineTo(canvas.width, y);
+          ctx.stroke();
+        }
+      }
+
+      // 큰 구역 표시 (월드 스크롤 체감용)
+      const sector = 400;
+      const sx = Math.floor(state.camera.x / sector);
+      const sy = Math.floor(state.camera.y / sector);
+      for (let i = -1; i <= 2; i++) {
+        for (let j = -1; j <= 2; j++) {
+          const worldX = (sx + i) * sector;
+          const worldY = (sy + j) * sector;
+          if (worldX < 0 || worldY < 0 || worldX >= state.world.w || worldY >= state.world.h) continue;
+          const p = worldToScreen(worldX, worldY);
+          ctx.fillStyle = 'rgba(99,102,241,0.06)';
+          ctx.fillRect(p.x, p.y, sector, sector);
+        }
+      }
+
+      // 월드 경계 라인
+      ctx.strokeStyle = 'rgba(248,250,252,0.25)';
+      ctx.lineWidth = 2;
+      const topLeft = worldToScreen(0, 0);
+      ctx.strokeRect(topLeft.x, topLeft.y, state.world.w, state.world.h);
+      ctx.restore();
+    }
+
+    function renderTitlePreview() {
+      // 단순 미리보기 장식
+      ctx.save();
+      ctx.fillStyle = 'rgba(255,255,255,0.05)';
+      for (let i = 0; i < 18; i++) {
+        const x = (i * 79) % canvas.width;
+        const y = (i * 131) % canvas.height;
+        ctx.beginPath();
+        ctx.arc(x, y, 10 + (i % 3) * 2, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.restore();
+    }
+
+    function renderXPNodes() {
+      for (const n of state.xpNodes) {
+        const s = worldToScreen(n.x, n.y);
+        if (s.x < -40 || s.y < -40 || s.x > canvas.width + 40 || s.y > canvas.height + 40) continue;
+
+        ctx.save();
+        const pulse = 1 + Math.sin(n.pulse * 2) * 0.12;
+        ctx.translate(s.x, s.y);
+        ctx.scale(pulse, pulse);
+
+        // 외곽
+        ctx.fillStyle = 'rgba(239,68,68,0.18)';
+        ctx.beginPath();
+        ctx.arc(0, 0, n.r + 5, 0, Math.PI * 2);
+        ctx.fill();
+
+        // 본체
+        ctx.fillStyle = '#ef4444';
+        ctx.beginPath();
+        ctx.arc(0, 0, n.r, 0, Math.PI * 2);
+        ctx.fill();
+
+        // 반짝이
+        ctx.fillStyle = 'rgba(255,255,255,0.85)';
+        ctx.beginPath();
+        ctx.arc(-n.r * 0.35, -n.r * 0.35, Math.max(1.5, n.r * 0.22), 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      }
+    }
+
+    function renderEnemies() {
+      for (const e of state.enemies) {
+        const s = worldToScreen(e.x, e.y);
+        if (s.x < -60 || s.y < -60 || s.x > canvas.width + 60 || s.y > canvas.height + 60) continue;
+
+        const pulse = 1 + Math.sin(e.pulse * 1.8) * 0.07;
+        ctx.save();
+        ctx.translate(s.x, s.y);
+        ctx.scale(pulse, pulse);
+
+        // 경고 외곽
+        ctx.fillStyle = 'rgba(37,99,235,0.16)';
+        ctx.beginPath();
+        ctx.arc(0, 0, e.r + 7, 0, Math.PI * 2);
+        ctx.fill();
+
+        // 본체
+        ctx.fillStyle = '#2563eb';
+        ctx.beginPath();
+        ctx.arc(0, 0, e.r, 0, Math.PI * 2);
+        ctx.fill();
+
+        // 눈/핵
+        ctx.fillStyle = '#dbeafe';
+        ctx.beginPath();
+        ctx.arc(0, 0, Math.max(3, e.r * 0.35), 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      }
+    }
+
+    function renderPlayer() {
+      const p = state.player;
+      const s = worldToScreen(p.x, p.y);
+      const y = s.y - p.dodge.jumpOffsetY;
+
+      // 그림자 (점프 높이에 따라 작아짐)
+      ctx.save();
+      const shadowScale = 1 - clamp(p.dodge.jumpOffsetY / (p.dodge.heightBase * 1.8 || 1), 0, 0.65);
+      ctx.fillStyle = 'rgba(0,0,0,0.28)';
+      ctx.beginPath();
+      ctx.ellipse(s.x, s.y + 13, 13 * shadowScale, 5 * shadowScale, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+
+      // 스프라이트 시트가 있으면 drawImage(프레임 잘라그리기)
+      const def = CHARACTER_DEFS[p.classId];
+      const meta = def.spriteMeta;
+      const sprite = assetCache.classSprites[p.classId];
+
+      const isFlashing = !p.canBeHit && (Math.floor(performance.now() / 50) % 2 === 0);
+
+      if (sprite && sprite.complete && sprite.naturalWidth > 0) {
+        const row = meta.rows[p.anim.state] ?? 0;
+        const frameCount = meta.frames[p.anim.state] ?? 1;
+        const frame = clamp(p.anim.frame, 0, Math.max(0, frameCount - 1));
+        const sx = frame * meta.frameW;
+        const sy = row * meta.frameH;
+
+        let scaleX = (p.facing < 0) ? -1 : 1;
+        let scaleY = 1;
+        if (p.dodge.active) {
+          const t = clamp(p.dodge.elapsed / p.dodge.durationBase, 0, 1);
+          if (t < 0.18) { scaleX *= 1.08; scaleY *= 0.92; }      // 출발 압축
+          else if (t < 0.60) { scaleX *= 0.95; scaleY *= 1.08; } // 상승 스트레치
+        }
+
+        ctx.save();
+        ctx.translate(Math.round(s.x), Math.round(y));
+        ctx.scale(scaleX, scaleY);
+        if (isFlashing) ctx.globalAlpha = 0.55;
+
+        ctx.drawImage(
+          sprite,
+          sx, sy, meta.frameW, meta.frameH,              // 원본 시트에서 자를 프레임
+          -meta.drawW / 2, -meta.drawH / 2,              // 캔버스 그릴 위치(중심 기준)
+          meta.drawW, meta.drawH                         // 캔버스 그릴 크기
+        );
+        ctx.restore();
+        return;
+      }
+
+      // 폴백: 도형 기반 캐릭터 (AI 스프라이트 없을 때도 플레이 가능)
+      ctx.save();
+      ctx.translate(Math.round(s.x), Math.round(y));
+
+      let scaleX = 1, scaleY = 1;
+      if (p.facing < 0) scaleX *= -1;
+      if (p.dodge.active) {
+        const t = clamp(p.dodge.elapsed / p.dodge.durationBase, 0, 1);
+        if (t < 0.18) { scaleX *= 1.10; scaleY *= 0.90; }
+        else if (t < 0.60) { scaleX *= 0.94; scaleY *= 1.08; }
+      }
+      ctx.scale(scaleX, scaleY);
+
+      if (isFlashing) ctx.globalAlpha = 0.55;
+
+      // 캐릭터별 색/실루엣 차이
+      const palette = {
+        wizard:   { body:'#7c3aed', trim:'#c4b5fd', head:'#f8fafc' },
+        swordsman:{ body:'#334155', trim:'#94a3b8', head:'#f8fafc' },
+        rogue:    { body:'#0f766e', trim:'#5eead4', head:'#f8fafc' },
+      }[p.classId];
+
+      // 몸통
+      ctx.fillStyle = palette.body;
+      ctx.fillRect(-11, -8, 22, 18);
+
+      // 하의/망토 느낌
+      ctx.fillStyle = palette.trim;
+      ctx.fillRect(-8, 6, 16, 6);
+
+      // 머리
+      ctx.fillStyle = palette.head;
+      ctx.beginPath();
+      ctx.arc(0, -13, 7, 0, Math.PI * 2);
+      ctx.fill();
+
+      // 직업별 상징
+      if (p.classId === 'wizard') {
+        ctx.strokeStyle = '#f59e0b';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(8, -7); ctx.lineTo(15, -18);
+        ctx.stroke();
+        ctx.fillStyle = '#fde68a';
+        ctx.beginPath();
+        ctx.arc(16, -19, 3, 0, Math.PI * 2);
+        ctx.fill();
+      } else if (p.classId === 'swordsman') {
+        ctx.strokeStyle = '#e2e8f0';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(9, -4); ctx.lineTo(18, -12);
+        ctx.stroke();
+      } else if (p.classId === 'rogue') {
+        ctx.strokeStyle = '#99f6e4';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(10, -2); ctx.lineTo(18, -9);
+        ctx.moveTo(10, 2); ctx.lineTo(18, 9);
+        ctx.stroke();
+      }
+      ctx.restore();
+    }
+
+    function renderProjectiles() {
+      for (const prj of state.projectiles) {
+        const s = worldToScreen(prj.x, prj.y);
+        if (s.x < -30 || s.x > canvas.width + 30 || s.y < -30 || s.y > canvas.height + 30) continue;
+
+        ctx.save();
+        if (prj.kind === 'wizardAoE') {
+          const g = ctx.createRadialGradient(s.x, s.y, 1, s.x, s.y, prj.r * 3.2);
+          g.addColorStop(0, 'rgba(216,180,254,0.95)');
+          g.addColorStop(0.5, 'rgba(168,85,247,0.75)');
+          g.addColorStop(1, 'rgba(168,85,247,0.0)');
+          ctx.fillStyle = g;
+          ctx.beginPath();
+          ctx.arc(s.x, s.y, prj.r * 3.2, 0, Math.PI * 2);
+          ctx.fill();
+
+          ctx.fillStyle = '#c084fc';
+          ctx.beginPath();
+          ctx.arc(s.x, s.y, prj.r, 0, Math.PI * 2);
+          ctx.fill();
+        } else {
+          ctx.strokeStyle = 'rgba(56,189,248,0.25)';
+          ctx.lineWidth = 1.5;
+          ctx.beginPath();
+          ctx.moveTo(s.x - (prj.vx * 0.018), s.y - (prj.vy * 0.018));
+          ctx.lineTo(s.x, s.y);
+          ctx.stroke();
+
+          ctx.fillStyle = '#38bdf8';
+          ctx.beginPath();
+          ctx.arc(s.x, s.y, prj.r + Math.sin(prj.pulse) * 0.4, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        ctx.restore();
+      }
+    }
+
+    function renderEffects() {
+      if (!state.settings.showCombatEffects) return;
+      for (const ef of state.effects) {
+        const t = clamp(ef.elapsed / ef.duration, 0, 1);
+        const s = worldToScreen(ef.x, ef.y);
+
+        if (ef.type === 'ring') {
+          ctx.save();
+          ctx.strokeStyle = ef.color;
+          ctx.lineWidth = ef.lineWidth * (1 - t * 0.5);
+          ctx.globalAlpha = 1 - t;
+          ctx.beginPath();
+          ctx.arc(s.x, s.y, lerp(10, ef.maxR, t), 0, Math.PI * 2);
+          ctx.stroke();
+          ctx.restore();
+        } else if (ef.type === 'text') {
+          ctx.save();
+          ctx.globalAlpha = 1 - t;
+          ctx.fillStyle = ef.color;
+          ctx.font = 'bold 14px sans-serif';
+          ctx.textAlign = 'center';
+          ctx.fillText(ef.txt, s.x, s.y - t * 18);
+          ctx.restore();
+        }
+      }
+    }
+
+    function renderHUD() {
+      const p = state.player;
+
+      ctx.save();
+      ctx.fillStyle = 'rgba(255,255,255,0.9)';
+      ctx.strokeStyle = 'rgba(15,23,42,0.08)';
+      ctx.lineWidth = 1;
+
+      // 좌상단: 체력 + 캐릭터/생존 정보
+      roundRect(ctx, 8, 8, 252, 70, 12, true, true);
+      ctx.fillStyle = '#0f172a';
+      ctx.textAlign = 'left';
+      ctx.font = 'bold 13px sans-serif';
+      ctx.fillText(`${p.emoji} ${p.name}  LV ${p.level}`, 16, 27);
+      ctx.font = '12px sans-serif';
+      ctx.fillText(`HP ${p.hp} / ${p.maxHp}`, 16, 45);
+      drawBar(76, 35, 174, 12, p.hp / Math.max(1, p.maxHp), '#ef4444', '#fecaca');
+      ctx.fillStyle = '#334155';
+      ctx.fillText(`생존 ${state.time.elapsed.toFixed(1)}초 / 적 ${state.enemies.length}`, 16, 63);
+
+      // 우상단: 설정 톱니바퀴 버튼 (기존 회피 쿨다운 자리 대체)
+      const gearBox = { x: canvas.width - 78, y: 8, w: 70, h: 70 };
+      state.ui.canvasButtons.settings = { ...gearBox };
+      roundRect(ctx, gearBox.x, gearBox.y, gearBox.w, gearBox.h, 12, true, true);
+
+      // 버튼 배경
+      const gearBtn = { x: gearBox.x + 13, y: gearBox.y + 9, w: 44, h: 44 };
+      ctx.fillStyle = settingsOverlay.classList.contains('show') ? '#dbeafe' : '#eff6ff';
+      ctx.strokeStyle = 'rgba(37,99,235,0.25)';
+      roundRect(ctx, gearBtn.x, gearBtn.y, gearBtn.w, gearBtn.h, 12, true, true);
+
+      // 톱니 아이콘(텍스트)
+      ctx.fillStyle = '#1d4ed8';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.font = 'bold 24px sans-serif';
+      ctx.fillText('⚙', gearBtn.x + gearBtn.w / 2, gearBtn.y + gearBtn.h / 2 + 1);
+
+      // 라벨 / 회피 쿨다운 숫자
+      ctx.textBaseline = 'alphabetic';
+      ctx.fillStyle = '#334155';
+      ctx.font = '11px sans-serif';
+      const cdNow = Math.max(0, p.dodge.cooldown);
+      ctx.fillText(cdNow > 0 ? `CD ${cdNow.toFixed(2)}s` : '설정', gearBox.x + gearBox.w / 2, gearBox.y + 65);
+
+      // 상단 상태 문자열(공격 타입/난이도) - 우상단 버튼 좌측에 간략 표시
+      ctx.textAlign = 'right';
+      ctx.fillStyle = '#334155';
+      ctx.font = '12px sans-serif';
+      ctx.fillText(`공격: ${attackLabel(p)} | 난이도 ${state.difficulty.level}`, gearBox.x - 10, 27);
+
+      // 하단 전체: 경험치 바 (사용자 요청)
+      const outerX = 10;
+      const outerW = canvas.width - 20;
+      const outerH = 36;
+      const outerY = canvas.height - outerH - 10;
+      roundRect(ctx, outerX, outerY, outerW, outerH, 14, true, true);
+
+      const xpRatio = p.xpToNext > 0 ? p.xp / p.xpToNext : 0;
+      drawBar(outerX + 10, outerY + 15, outerW - 20, 12, xpRatio, '#ef4444', '#fee2e2');
+      ctx.fillStyle = '#0f172a';
+      ctx.font = 'bold 12px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText(`XP ${Math.floor(p.xp)} / ${p.xpToNext}   (총 ${Math.floor(p.totalXp || 0)})`, canvas.width / 2, outerY + 12);
+
+      ctx.restore();
+    }
+
+    function attackLabel(p) {
+      if (!p || !p.attack) return '-';
+      if (p.attack.kind === 'projectileAoE') return '자동 원거리 광역';
+      if (p.attack.kind === 'projectileSingle') return '자동 원거리 단일';
+      return '자동 근접 휩쓸기';
+    }
+
+    function renderMiniMap(x, y, w, h) {
+      ctx.save();
+      roundRect(ctx, x - 6, y - 6, w + 12, h + 12, 12, true, false);
+      ctx.strokeStyle = 'rgba(255,255,255,0.45)';
+      ctx.lineWidth = 1;
+      ctx.strokeRect(x, y, w, h);
+
+      // 카메라 viewport
+      const cam = state.camera;
+      const vw = canvas.width / state.world.w * w;
+      const vh = canvas.height / state.world.h * h;
+      const vx = x + (cam.x / state.world.w) * w;
+      const vy = y + (cam.y / state.world.h) * h;
+      ctx.fillStyle = 'rgba(59,130,246,0.12)';
+      ctx.strokeStyle = 'rgba(59,130,246,0.7)';
+      ctx.fillRect(vx, vy, vw, vh);
+      ctx.strokeRect(vx, vy, vw, vh);
+
+      // 플레이어
+      const p = state.player;
+      const px = x + (p.x / state.world.w) * w;
+      const py = y + (p.y / state.world.h) * h;
+      ctx.fillStyle = '#f8fafc';
+      ctx.beginPath();
+      ctx.arc(px, py, 2.5, 0, Math.PI * 2);
+      ctx.fill();
+
+      // 적 샘플
+      ctx.fillStyle = 'rgba(37,99,235,.8)';
+      const enemyStep = Math.max(1, Math.floor(state.enemies.length / 40));
+      for (let i = 0; i < state.enemies.length; i += enemyStep) {
+        const e = state.enemies[i];
+        ctx.fillRect(x + (e.x / state.world.w) * w, y + (e.y / state.world.h) * h, 2, 2);
+      }
+
+      // XP 샘플
+      ctx.fillStyle = 'rgba(239,68,68,.8)';
+      const xpStep = Math.max(1, Math.floor(state.xpNodes.length / 40));
+      for (let i = 0; i < state.xpNodes.length; i += xpStep) {
+        const n = state.xpNodes[i];
+        ctx.fillRect(x + (n.x / state.world.w) * w, y + (n.y / state.world.h) * h, 2, 2);
+      }
+      ctx.restore();
+    }
+
+    function roundRect(ctx, x, y, w, h, r, fill, stroke) {
+      if (w <= 0 || h <= 0) return;
+      r = Math.max(0, Math.min(r, w / 2, h / 2));
+      ctx.beginPath();
+      ctx.moveTo(x + r, y);
+      ctx.arcTo(x + w, y, x + w, y + h, r);
+      ctx.arcTo(x + w, y + h, x, y + h, r);
+      ctx.arcTo(x, y + h, x, y, r);
+      ctx.arcTo(x, y, x + w, y, r);
+      ctx.closePath();
+      if (fill) ctx.fill();
+      if (stroke) ctx.stroke();
+    }
+
+    function drawBar(x, y, w, h, ratio, fillColor, bgColor) {
+      if (w <= 0 || h <= 0) return;
+      const rr = h / 2;
+      const safeRatio = clamp(ratio, 0, 1);
+      ctx.save();
+      ctx.fillStyle = bgColor;
+      roundRect(ctx, x, y, w, h, rr, true, false);
+      ctx.fillStyle = fillColor;
+      roundRect(ctx, x, y, Math.max(0, w * safeRatio), h, rr, true, false);
+      ctx.restore();
+    }
+
+    // =========================================================
+    // 12) 메인 루프 (requestAnimationFrame)
+    // =========================================================
+    function gameLoop(timestamp) {
+      if (!state.lastTime) state.lastTime = timestamp;
+      let dt = (timestamp - state.lastTime) / 1000;
+      state.lastTime = timestamp;
+
+      // 탭 전환/버벅임으로 dt가 너무 커질 때 물리 폭주 방지
+      dt = Math.min(dt, 0.05);
+
+      update(dt);
+      render();
+      requestAnimationFrame(gameLoop);
+    }
+
+    // =========================================================
+    // 13) 초기 화면 렌더 + 루프 시작
+    // =========================================================
+    state.mode = 'title';
+    syncSettingsUIFromState();
+    render();
+    requestAnimationFrame(gameLoop);
+
+    // =========================================================
+    // 14) 확장 포인트 메모 (향후 적 투사체 시스템)
+    // =========================================================
+    // - 도적의 bulletDeflect 패시브는 현재 "표식/구조 준비"까지만 반영.
+    // - 나중에 enemyProjectiles 배열을 만들고:
+    //   if (player.dodge.active && player.deflectEnabled) { projectile.reflect = true; }
+    //   처럼 처리하면 자연스럽게 확장 가능.
+  </script>
+</body>
+</html>

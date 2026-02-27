@@ -1,0 +1,13 @@
+body {
+      margin: 0;
+      padding: 0;
+      text-align: center;
+      font-family: sans-serif;
+    }
+
+#canvas {
+  background: #DCD7C9;
+  border: 2px solid red; /* 테스트용 */
+  display: block;
+  margin: 0 auto;
+}
