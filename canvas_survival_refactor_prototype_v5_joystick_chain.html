@@ -768,6 +768,58 @@
       }
     ];
 
+    class AugmentManager {
+  constructor(augments) {
+    this.augments = augments;     // AUGMENTS 배열을 들고 있음
+    this.ensureDefaults();        // taken/ultimate/augmentsOn 기본값 보장
+  }
+
+  ensureDefaults() {
+    for (const a of this.augments) {
+      if (a.taken == null) a.taken = 0;
+      if (a.ultimate == null) a.ultimate = false;
+      if (a.augmentsOn == null) a.augmentsOn = true;
+    }
+  }
+
+  resetForNewRun() {
+    for (const a of this.augments) {
+      a.taken = 0;
+      a.ultimate = false;
+      a.augmentsOn = true;
+    }
+  }
+
+  // 선택 가능한(augmentsOn=true) 증강들만 풀로 반환
+  getPool() {
+    return this.augments.filter(a => a.augmentsOn !== false);
+  }
+
+  // 중복 없이 n개 뽑기
+  pick(n = 3) {
+    const pool = this.getPool().slice(); // 원본 보호용 복사
+    const picks = [];
+    while (pool.length && picks.length < n) {
+      const idx = Math.floor(Math.random() * pool.length);
+      picks.push(pool.splice(idx, 1)[0]);
+    }
+    return picks;
+  }
+
+  // 선택 적용 + taken/ultimate/augmentsOn 갱신
+  applyPick(aug, state) {
+    aug.apply(state);
+    aug.taken = (aug.taken ?? 0) + 1;
+    if (aug.taken >= 12) {
+      aug.ultimate = true;
+      aug.augmentsOn = false;
+    }
+  }
+}
+
+// AUGMENTS 아래에 인스턴스(실물) 생성
+const augmentManager = new AugmentManager(AUGMENTS);
+
     // 이미지 로딩 캐시
     const assetCache = {
       classSprites: {},
@@ -920,7 +972,8 @@
     }
 
     function resetRun() {
-      state.world = { ...WORLD };
+      augmentManager.resetForNewRun();
+      /* state.world = { ...WORLD };
       state.player = createPlayer(state.selectedClassId);
       state.enemies = [];
       state.xpNodes = [];
@@ -945,7 +998,7 @@
 
       // 카메라 초기값
       state.camera.x = clamp(state.player.x - canvas.width / 2, 0, state.world.w - canvas.width);
-      state.camera.y = clamp(state.player.y - canvas.height / 2, 0, state.world.h - canvas.height);
+      state.camera.y = clamp(state.player.y - canvas.height / 2, 0, state.world.h - canvas.height); */
     }
 
     // =========================================================
@@ -1131,12 +1184,13 @@
 
       // 중복 없이 3개 선택
       const pool = [...AUGMENTS];
-      const picks = [];
-      while (pool.length && picks.length < 3) {
-        const idx = randInt(0, pool.length - 1);
-        picks.push(pool.splice(idx, 1)[0]);
+      const picks = augmentManager.pick(3);
+      if (!picks.length) {
+        state.paused = false;
+        augmentOverlay.classList.remove('show');
+        state.ui.pendingAugments = [];
+        return;
       }
-      state.ui.pendingAugments = picks;
 
       augmentGrid.innerHTML = '';
       for (const aug of picks) {
@@ -1156,7 +1210,7 @@
           </div>
         `;
         btn.addEventListener('click', () => {
-          aug.apply(state);
+          aug.apply(aug, state);
           state.paused = false;
           augmentOverlay.classList.remove('show');
           state.ui.pendingAugments = [];
