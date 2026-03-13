@@ -1,293 +1,536 @@
 <!DOCTYPE html>
 <html lang="ko">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Arcane Survival Canvas Prototype</title>
   <style>
-    :root{
-      --bg:#0f172a;
-      --panel:#ffffff;
-      --panel2:#f8fafc;
-      --ink:#0f172a;
-      --muted:#64748b;
-      --accent:#2563eb;
-      --good:#16a34a;
-      --warn:#dc2626;
-      --gold:#f59e0b;
+    :root {
+      --bg: #0f172a;
+      --panel: #ffffff;
+      --panel2: #f8fafc;
+      --ink: #0f172a;
+      --muted: #64748b;
+      --accent: #2563eb;
+      --good: #16a34a;
+      --warn: #dc2626;
+      --gold: #f59e0b;
     }
-    *{ box-sizing:border-box; }
-    body{
-      margin:0; padding:0; text-align:center;
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      padding: 0;
+      text-align: center;
       font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans KR", sans-serif;
-      background:linear-gradient(180deg,#e2e8f0,#cbd5e1);
-      color:#0f172a;
+      background: linear-gradient(180deg, #e2e8f0, #cbd5e1);
+      color: #0f172a;
     }
-    .topbar{
-      position: sticky; top:0; z-index:20;
-      display:flex; align-items:center; justify-content:center; gap:14px;
-      background:rgba(255,255,255,.9);
-      border-bottom:1px solid rgba(15,23,42,.08);
+
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 14px;
+      background: rgba(255, 255, 255, .9);
+      border-bottom: 1px solid rgba(15, 23, 42, .08);
       backdrop-filter: blur(6px);
-      padding:8px 10px;
-      font-weight:700;
+      padding: 8px 10px;
+      font-weight: 700;
     }
-    .hint{
-      font-size:14px; color:#334155; margin:10px 8px 6px;
+
+    .hint {
+      font-size: 14px;
+      color: #334155;
+      margin: 10px 8px 6px;
     }
-    .game-title{
+
+    .game-title {
       margin: 10px 0 6px;
       font-size: clamp(24px, 5vw, 34px);
       font-weight: 900;
-      color:#1e3a8a;
+      color: #1e3a8a;
       letter-spacing: 1px;
-      text-shadow: 0 2px 0 rgba(255,255,255,.8);
+      text-shadow: 0 2px 0 rgba(255, 255, 255, .8);
     }
-    #canvas{
-      display:block;
+
+    #canvas {
+      display: block;
       margin: 0 auto;
-      background:#0b1020;
-      border: 3px solid rgba(15,23,42,.18);
+      background: #0b1020;
+      border: 3px solid rgba(15, 23, 42, .18);
       border-radius: 14px;
-      box-shadow: 0 12px 28px rgba(15,23,42,.18);
+      box-shadow: 0 12px 28px rgba(15, 23, 42, .18);
       touch-action: none;
     }
-    @media (min-width:769px){
-      #canvas{ width:600px; height:600px; }
-    }
-    @media (max-width:768px){
-      #canvas{ width:100vw; height:100vw; border-radius:0; border-left:0; border-right:0; }
+
+    @media (min-width:769px) {
+      #canvas {
+        width: 600px;
+        height: 600px;
+      }
     }
 
-    .controls{
-      display:none;
+    @media (max-width:768px) {
+      #canvas {
+        width: 100vw;
+        height: 100vw;
+        border-radius: 0;
+        border-left: 0;
+        border-right: 0;
+      }
+    }
+
+    .controls {
+      display: none;
       margin: 12px auto 20px;
-      width:min(560px, 100vw);
+      width: min(560px, 100vw);
       padding: 0 10px;
     }
-    @media (max-width:768px){ .controls{ display:block; } }
-    .controls-grid{
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      gap:12px;
-      width:100%;
+
+    @media (max-width:768px) {
+      .controls {
+        display: block;
+      }
     }
-    .controls.left-handed .controls-grid{
+
+    .controls-grid {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      width: 100%;
+    }
+
+    .controls.left-handed .controls-grid {
       flex-direction: row-reverse;
     }
-    .joy-side, .action-side{
+
+    .joy-side,
+    .action-side {
       flex: 1 1 0;
-      display:flex;
-      align-items:center;
+      display: flex;
+      align-items: center;
     }
-    .joy-side{ justify-content:flex-start; }
-    .action-side{ justify-content:flex-end; }
-        .joystick{
-      position:relative;
-      width:136px;
-      height:136px;
-      touch-action:none;
-      user-select:none;
-      -webkit-user-select:none;
+
+    .joy-side {
+      justify-content: flex-start;
     }
-    .joy-range{
-      position:absolute;
-      left:50%;
-      top:50%;
-      width:100px;
-      height:100px;
-      transform:translate(-50%, -50%);
-      border-radius:50%;
-      border:2px solid rgba(15,23,42,.14);
-      background: rgba(15,23,42,.035);
-      box-shadow: inset 0 0 0 1px rgba(255,255,255,.6);
-      pointer-events:none;
+
+    .action-side {
+      justify-content: flex-end;
     }
+
+    .joystick {
+      position: relative;
+      width: 136px;
+      height: 136px;
+      touch-action: none;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    .joy-range {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      width: 100px;
+      height: 100px;
+      transform: translate(-50%, -50%);
+      border-radius: 50%;
+      border: 2px solid rgba(15, 23, 42, .14);
+      background: rgba(15, 23, 42, .035);
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .6);
+      pointer-events: none;
+    }
+
     .joy-anchor,
     .joy-mid,
-    .joy-main{
-      position:absolute;
-      left:50%;
-      top:50%;
-      border-radius:50%;
-      background:#000;
-      transform:translate(-50%, -50%);
-      pointer-events:none;
-      will-change:transform,width,height,opacity;
+    .joy-main {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      border-radius: 50%;
+      background: #000;
+      transform: translate(-50%, -50%);
+      pointer-events: none;
+      will-change: transform, width, height, opacity;
     }
-    .joy-anchor{
-      width:14px;
-      height:14px;
-      z-index:4;
-      box-shadow:0 0 0 1px rgba(255,255,255,.08);
+
+    .joy-anchor {
+      width: 14px;
+      height: 14px;
+      z-index: 4;
+      box-shadow: 0 0 0 1px rgba(255, 255, 255, .08);
     }
-    .joy-mid{
-      opacity:0;
-      z-index:2;
+
+    .joy-mid {
+      opacity: 0;
+      z-index: 2;
       transition: opacity .08s linear;
-      box-shadow:0 4px 10px rgba(0,0,0,.12);
+      box-shadow: 0 4px 10px rgba(0, 0, 0, .12);
     }
-    .joy-mid1{
-      width:30px;
-      height:30px;
-      z-index:2;
-      opacity:0;
+
+    .joy-mid1 {
+      width: 30px;
+      height: 30px;
+      z-index: 2;
+      opacity: 0;
     }
-    .joy-mid2{
-      width:46px;
-      height:46px;
-      z-index:3;
-      opacity:0;
+
+    .joy-mid2 {
+      width: 46px;
+      height: 46px;
+      z-index: 3;
+      opacity: 0;
     }
-    .joy-main{
-      width:68px;
-      height:68px;
-      z-index:5;
-      box-shadow:0 8px 18px rgba(0,0,0,.18);
+
+    .joy-main {
+      width: 68px;
+      height: 68px;
+      z-index: 5;
+      box-shadow: 0 8px 18px rgba(0, 0, 0, .18);
       transition: transform .12s ease;
     }
-    .joystick.active .joy-main{ transition: none; }
-    .joystick.active .joy-mid{ transition: none; }
 
-    .action-pad{
-      display:flex; flex-direction:column; gap:10px; justify-content:center; align-items:center;
+    .joystick.active .joy-main {
+      transition: none;
     }
-    .action-pad button{
-      border:none;
-      border-radius:50%;
-      background:#1e293b;
-      color:white;
-      font-weight:800;
-      width:92px; height:92px;
-      box-shadow:0 8px 16px rgba(0,0,0,.18);
-      user-select:none;
-      -webkit-user-select:none;
-      touch-action:none;
+
+    .joystick.active .joy-mid {
+      transition: none;
     }
-    .action-pad button:active{ transform:translateY(1px) scale(.98); }
-    .dodge-btn{
-      background:#7c3aed !important;
-      font-size:15px !important;
-      line-height:1.15;
-      padding:8px;
-      border:2px solid rgba(255,255,255,.25);
+
+    .action-pad {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      justify-content: center;
+      align-items: center;
     }
-    .settings-form{ margin-top:12px; display:grid; gap:10px; }
-    .setting-item{ display:flex; align-items:center; justify-content:space-between; gap:12px; padding:10px 12px; border:1px solid rgba(15,23,42,.08); border-radius:12px; background:#f8fafc; }
-    .setting-item .meta{ text-align:left; }
-    .setting-item .title{ font-weight:800; font-size:14px; color:#0f172a; }
-    .setting-item .desc{ font-size:12px; color:#64748b; margin-top:2px; }
-    .setting-item input[type="checkbox"]{ width:20px; height:20px; accent-color:#2563eb; }
-    .setting-item select{ border:1px solid #cbd5e1; border-radius:10px; padding:6px 8px; background:#fff; font-weight:700; }
-    .btn.warn{ background:#ef4444; color:white; }
+
+    .action-pad button {
+      border: none;
+      border-radius: 50%;
+      background: #1e293b;
+      color: white;
+      font-weight: 800;
+      width: 92px;
+      height: 92px;
+      box-shadow: 0 8px 16px rgba(0, 0, 0, .18);
+      user-select: none;
+      -webkit-user-select: none;
+      touch-action: none;
+    }
+
+    .action-pad button:active {
+      transform: translateY(1px) scale(.98);
+    }
+
+    .dodge-btn {
+      background: #7c3aed !important;
+      font-size: 15px !important;
+      line-height: 1.15;
+      padding: 8px;
+      border: 2px solid rgba(255, 255, 255, .25);
+    }
+
+    .settings-form {
+      margin-top: 12px;
+      display: grid;
+      gap: 10px;
+    }
+
+    .setting-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 10px 12px;
+      border: 1px solid rgba(15, 23, 42, .08);
+      border-radius: 12px;
+      background: #f8fafc;
+    }
+
+    .setting-item .meta {
+      text-align: left;
+    }
+
+    .setting-item .title {
+      font-weight: 800;
+      font-size: 14px;
+      color: #0f172a;
+    }
+
+    .setting-item .desc {
+      font-size: 12px;
+      color: #64748b;
+      margin-top: 2px;
+    }
+
+    .setting-item input[type="checkbox"] {
+      width: 20px;
+      height: 20px;
+      accent-color: #2563eb;
+    }
+
+    .setting-item select {
+      border: 1px solid #cbd5e1;
+      border-radius: 10px;
+      padding: 6px 8px;
+      background: #fff;
+      font-weight: 700;
+    }
+
+    .btn.warn {
+      background: #ef4444;
+      color: white;
+    }
 
 
-    .overlay{
-      position: fixed; inset:0; z-index:100;
-      display:none; align-items:center; justify-content:center;
-      background: rgba(2,6,23,.45);
+    .overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 100;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      background: rgba(2, 6, 23, .45);
       padding: 20px;
     }
-    .overlay.show{ display:flex; }
-    .panel{
+
+    .overlay.show {
+      display: flex;
+    }
+
+    .panel {
       width: min(720px, 95vw);
-      background: rgba(255,255,255,.96);
-      border:1px solid rgba(15,23,42,.08);
+      background: rgba(255, 255, 255, .96);
+      border: 1px solid rgba(15, 23, 42, .08);
       border-radius: 18px;
-      box-shadow: 0 16px 40px rgba(15,23,42,.25);
+      box-shadow: 0 16px 40px rgba(15, 23, 42, .25);
       padding: 18px;
-      text-align:left;
+      text-align: left;
     }
-    .panel h2{ margin:0 0 10px; font-size:24px; }
-    .panel p{ margin:6px 0; color:#334155; line-height:1.45; }
-    .row-btns{ display:flex; gap:10px; flex-wrap:wrap; margin-top:12px; }
-    .btn{
-      border:none; border-radius:12px;
-      padding:10px 14px;
-      font-weight:800; cursor:pointer;
-      box-shadow:0 6px 12px rgba(0,0,0,.12);
-    }
-    .btn.primary{ background:#22c55e; color:white; }
-    .btn.secondary{ background:#e2e8f0; color:#0f172a; }
-    .btn.link{ background:#3b82f6; color:white; }
 
-    .class-grid{
-      display:grid;
+    .panel h2 {
+      margin: 0 0 10px;
+      font-size: 24px;
+    }
+
+    .panel p {
+      margin: 6px 0;
+      color: #334155;
+      line-height: 1.45;
+    }
+
+    .row-btns {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 12px;
+    }
+
+    .btn {
+      border: none;
+      border-radius: 12px;
+      padding: 10px 14px;
+      font-weight: 800;
+      cursor: pointer;
+      box-shadow: 0 6px 12px rgba(0, 0, 0, .12);
+    }
+
+    .btn.primary {
+      background: #22c55e;
+      color: white;
+    }
+
+    .btn.secondary {
+      background: #e2e8f0;
+      color: #0f172a;
+    }
+
+    .btn.link {
+      background: #3b82f6;
+      color: white;
+    }
+
+    .class-grid {
+      display: grid;
       grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap:10px;
-      margin-top:10px;
+      gap: 10px;
+      margin-top: 10px;
     }
-    @media (max-width:680px){
-      .class-grid{ grid-template-columns: 1fr; }
+
+    @media (max-width:680px) {
+      .class-grid {
+        grid-template-columns: 1fr;
+      }
     }
-    .class-card{
-      border:2px solid #cbd5e1;
-      background:#f8fafc;
-      border-radius:14px;
-      padding:12px;
-      cursor:pointer;
+
+    .class-card {
+      border: 2px solid #cbd5e1;
+      background: #f8fafc;
+      border-radius: 14px;
+      padding: 12px;
+      cursor: pointer;
       transition: transform .12s ease, border-color .12s ease, box-shadow .12s ease;
-      text-align:left;
+      text-align: left;
     }
-    .class-card:hover{ transform:translateY(-1px); box-shadow:0 8px 18px rgba(15,23,42,.08); }
-    .class-card.selected{
-      border-color:#2563eb;
-      background:#eff6ff;
-      box-shadow:0 0 0 3px rgba(37,99,235,.15) inset;
-    }
-    .class-card .name{ font-weight:900; font-size:18px; display:flex; align-items:center; gap:8px; }
-    .class-card .summary{ color:#334155; font-size:13px; margin-top:6px; min-height:34px; }
-    .class-card ul{ margin:8px 0 0 16px; padding:0; color:#334155; font-size:12px; }
 
-    .hud-legend{
-      display:flex; gap:10px; flex-wrap:wrap; margin-top:8px; color:#334155; font-size:13px;
+    .class-card:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 8px 18px rgba(15, 23, 42, .08);
     }
-    .dot{
-      display:inline-block; width:10px; height:10px; border-radius:50%; margin-right:6px; transform: translateY(1px);
-    }
-    .dot.blue{ background:#2563eb; }
-    .dot.red{ background:#ef4444; }
 
-    .augment-grid{
-      display:grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap:10px;
-      margin-top:12px;
+    .class-card.selected {
+      border-color: #2563eb;
+      background: #eff6ff;
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, .15) inset;
     }
-    @media (max-width:720px){ .augment-grid{ grid-template-columns:1fr; } }
-    .augment-card{
-      border:2px solid #cbd5e1; border-radius:14px; background:#fff;
-      padding:10px; cursor:pointer; text-align:left;
+
+    .class-card .name {
+      font-weight: 900;
+      font-size: 18px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .class-card .summary {
+      color: #334155;
+      font-size: 13px;
+      margin-top: 6px;
+      min-height: 34px;
+    }
+
+    .class-card ul {
+      margin: 8px 0 0 16px;
+      padding: 0;
+      color: #334155;
+      font-size: 12px;
+    }
+
+    .hud-legend {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 8px;
+      color: #334155;
+      font-size: 13px;
+    }
+
+    .dot {
+      display: inline-block;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      margin-right: 6px;
+      transform: translateY(1px);
+    }
+
+    .dot.blue {
+      background: #2563eb;
+    }
+
+    .dot.red {
+      background: #ef4444;
+    }
+
+    .augment-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+      margin-top: 12px;
+    }
+
+    @media (max-width:720px) {
+      .augment-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .augment-card {
+      border: 2px solid #cbd5e1;
+      border-radius: 14px;
+      background: #fff;
+      padding: 10px;
+      cursor: pointer;
+      text-align: left;
       transition: transform .12s ease, border-color .12s ease;
-      display:flex; gap:10px; align-items:flex-start;
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
     }
-    .augment-card:hover{ transform:translateY(-1px); border-color:#7c3aed; }
-    .augment-icon{
-      width:54px; height:54px; border-radius:12px;
-      background: linear-gradient(135deg,#ede9fe,#ddd6fe);
-      display:flex; align-items:center; justify-content:center;
-      font-size:28px; flex:0 0 auto; border:1px solid rgba(124,58,237,.18);
-      overflow:hidden;
-    }
-    .augment-icon img{
-      width:100%; height:100%; object-fit:cover; display:block;
-    }
-    .augment-card .title{ font-weight:900; font-size:15px; }
-    .augment-card .desc{ font-size:13px; color:#475569; margin-top:4px; }
 
-    .small{
-      font-size:12px; color:#64748b;
+    .augment-card:hover {
+      transform: translateY(-1px);
+      border-color: #7c3aed;
     }
-    .chip{
-      display:inline-flex; align-items:center; gap:6px;
-      border-radius:999px; padding:4px 10px;
-      background:#eef2ff; color:#3730a3; font-weight:700; font-size:12px;
+
+    .augment-icon {
+      width: 54px;
+      height: 54px;
+      border-radius: 12px;
+      background: linear-gradient(135deg, #ede9fe, #ddd6fe);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 28px;
+      flex: 0 0 auto;
+      border: 1px solid rgba(124, 58, 237, .18);
+      overflow: hidden;
     }
+
+    .augment-icon img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .augment-card .title {
+      font-weight: 900;
+      font-size: 15px;
+    }
+
+    .augment-card .desc {
+      font-size: 13px;
+      color: #475569;
+      margin-top: 4px;
+    }
+
+    .small {
+      font-size: 12px;
+      color: #64748b;
+    }
+
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      border-radius: 999px;
+      padding: 4px 10px;
+      background: #eef2ff;
+      color: #3730a3;
+      font-weight: 700;
+      font-size: 12px;
+    }
+
     .gameRestartBtn.limit-mode {
       display: none;
       pointer-events: none;
     }
   </style>
 </head>
+
 <body>
   <div class="topbar">
     <span>🎮 이동: 방향키 / WASD</span>
@@ -331,7 +574,8 @@
       </div>
       <div class="class-grid" id="classGrid"></div>
       <div class="small" style="margin-top:10px;">
-        ※ AI 이미지 적용 예정이면 아래 코드의 <code>CHARACTER_DEFS[*].spriteSheetUrl</code> / <code>AUGMENTS[*].iconUrl</code>에 경로를 넣으면 됩니다.
+        ※ AI 이미지 적용 예정이면 아래 코드의 <code>CHARACTER_DEFS[*].spriteSheetUrl</code> / <code>AUGMENTS[*].iconUrl</code>에 경로를
+        넣으면 됩니다.
       </div>
       <div class="row-btns">
         <button id="startBtn" class="btn primary">게임 시작</button>
@@ -470,15 +714,15 @@
 
     let dodgePressedOnce = false; // 길게 누름 중 중복 발동 방지
 
-    function isMoveLeft()  { return keys.ArrowLeft || keys.KeyA; }
+    function isMoveLeft() { return keys.ArrowLeft || keys.KeyA; }
     function isMoveRight() { return keys.ArrowRight || keys.KeyD; }
-    function isMoveUp()    { return keys.ArrowUp || keys.KeyW; }
-    function isMoveDown()  { return keys.ArrowDown || keys.KeyS; }
+    function isMoveUp() { return keys.ArrowUp || keys.KeyW; }
+    function isMoveDown() { return keys.ArrowDown || keys.KeyS; }
     function isDodgeHeld() { return keys.Space || keys.ShiftLeft || keys.ShiftRight; }
 
     window.addEventListener('keydown', (e) => {
       if (e.code in keys) keys[e.code] = true;
-      if (["Space","ArrowUp","ArrowDown","ArrowLeft","ArrowRight"].includes(e.code)) e.preventDefault();
+      if (["Space", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(e.code)) e.preventDefault();
     }, { passive: false });
 
     window.addEventListener('keyup', (e) => {
@@ -620,7 +864,7 @@
       joystickState.active = true;
       joystickState.pointerId = e.pointerId ?? 'mouse';
       joystickEl.classList.add('active');
-      try { joystickEl.setPointerCapture?.(e.pointerId); } catch(_) {}
+      try { joystickEl.setPointerCapture?.(e.pointerId); } catch (_) { }
       updateJoystickFromClient(e.clientX, e.clientY);
     }
 
@@ -715,27 +959,27 @@
       {
         id: 'speedBoots', name: '질풍 장화', icon: '👢', iconUrl: '',
         desc: '이동속도 +12%',
-        apply(g){ g.player.moveSpeed *= 1.12; }
+        apply(g) { g.player.moveSpeed *= 1.12; }
       },
       {
         id: 'biggerMagnet', name: '흡인 자장', icon: '🧲', iconUrl: '',
         desc: '경험치 자석 범위 +35',
-        apply(g){ g.player.magnetRadius += 35; }
+        apply(g) { g.player.magnetRadius += 35; }
       },
       {
         id: 'dodgeMastery', name: '회피 숙련', icon: '🌀', iconUrl: '',
         desc: '회피 쿨다운 -12%',
-        apply(g){ g.player.dodge.cooldownBase = Math.max(0.2, g.player.dodge.cooldownBase * 0.88); }
+        apply(g) { g.player.dodge.cooldownBase = Math.max(0.2, g.player.dodge.cooldownBase * 0.88); }
       },
       {
         id: 'ghostStep', name: '유령 발걸음', icon: '👻', iconUrl: '',
         desc: '회피 무적 시간 +15%',
-        apply(g){ g.player.dodge.durationBase *= 1.15; }
+        apply(g) { g.player.dodge.durationBase *= 1.15; }
       },
       {
         id: 'vitality', name: '활력 증폭', icon: '❤️', iconUrl: '',
         desc: '최대 HP +1, 즉시 1 회복',
-        apply(g){
+        apply(g) {
           g.player.maxHp += 1;
           g.player.hp = Math.min(g.player.maxHp, g.player.hp + 1);
         }
@@ -743,12 +987,12 @@
       {
         id: 'xpFlow', name: '정수 공명', icon: '🔴', iconUrl: '',
         desc: '경험치 획득량 +15%',
-        apply(g){ g.player.xpGainMultiplier *= 1.15; }
+        apply(g) { g.player.xpGainMultiplier *= 1.15; }
       },
       {
         id: 'shockwave', name: '충격파 강화', icon: '💥', iconUrl: '',
         desc: '회피 종료 광역 피해 반경 +25, 피해 +1',
-        apply(g){
+        apply(g) {
           g.player.burstRadius += 25;
           g.player.burstDamage += 1;
         }
@@ -756,7 +1000,7 @@
       {
         id: 'thorns', name: '역충격', icon: '🛡️', iconUrl: '',
         desc: '피격 후 짧은 무적 + 넉백 강화',
-        apply(g){
+        apply(g) {
           g.player.postHitInvuln += 0.12;
           g.player.hitKnockback += 35;
         }
@@ -764,61 +1008,68 @@
       {
         id: 'luckyDrop', name: '행운의 정수', icon: '✨', iconUrl: '',
         desc: '빨간 경험치 개체 스폰량 증가',
-        apply(g){ g.spawn.xpRateMultiplier *= 1.20; }
+        apply(g) { g.spawn.xpRateMultiplier *= 1.20; }
       }
     ];
 
+    class MetaEnforce {
+      constructor() {
+
+      }
+    }
+
     class AugmentManager {
-  constructor(augments) {
-    this.augments = augments;     // AUGMENTS 배열을 들고 있음
-    this.ensureDefaults();        // taken/ultimate/augmentsOn 기본값 보장
-  }
+      constructor(augments) {
+        this.augments = augments;     // AUGMENTS 배열을 들고 있음
+        this.ensureDefaults();        // taken/ultimate/augmentsOn 기본값 보장
+      }
 
-  ensureDefaults() {
-    for (const a of this.augments) {
-      if (a.taken == null) a.taken = 0;
-      if (a.ultimate == null) a.ultimate = false;
-      if (a.augmentsOn == null) a.augmentsOn = true;
+      ensureDefaults() {
+        for (const a of this.augments) {
+          if (a.taken == null) a.taken = 0;
+          if (a.ultimate == null) a.ultimate = false;
+          if (a.augmentsOn == null) a.augmentsOn = true;
+        }
+      }
+
+      resetForNewRun() {
+        for (const a of this.augments) {
+          a.taken = 0;
+          a.ultimate = false;
+          a.augmentsOn = true;
+        }
+      }
+
+      // 선택 가능한(augmentsOn=true) 증강들만 풀로 반환
+      getPool() {
+        return this.augments.filter(a => a.augmentsOn !== false);
+      }
+
+      // 중복 없이 n개 뽑기
+      pick(n = 3) {
+        const pool = this.getPool().slice(); // 원본 보호용 복사
+        const picks = [];
+        while (pool.length && picks.length < n) {
+          const idx = Math.floor(Math.random() * pool.length);
+          picks.push(pool.splice(idx, 1)[0]);
+        }
+        return picks;
+      }
+
+      // 선택 적용 + taken/ultimate/augmentsOn 갱신
+      applyPick(aug, state) {
+        aug.apply(state);
+        aug.taken = (aug.taken ?? 0) + 1;
+        if (aug.taken >= 13) {
+          aug.ultimate = true;
+          aug.augmentsOn = false;
+        }
+      }
     }
-  }
 
-  resetForNewRun() {
-    for (const a of this.augments) {
-      a.taken = 0;
-      a.ultimate = false;
-      a.augmentsOn = true;
-    }
-  }
-
-  // 선택 가능한(augmentsOn=true) 증강들만 풀로 반환
-  getPool() {
-    return this.augments.filter(a => a.augmentsOn !== false);
-  }
-
-  // 중복 없이 n개 뽑기
-  pick(n = 3) {
-    const pool = this.getPool().slice(); // 원본 보호용 복사
-    const picks = [];
-    while (pool.length && picks.length < n) {
-      const idx = Math.floor(Math.random() * pool.length);
-      picks.push(pool.splice(idx, 1)[0]);
-    }
-    return picks;
-  }
-
-  // 선택 적용 + taken/ultimate/augmentsOn 갱신
-  applyPick(aug, state) {
-    aug.apply(state);
-    aug.taken = (aug.taken ?? 0) + 1;
-    if (aug.taken >= 12) {
-      aug.ultimate = true;
-      aug.augmentsOn = false;
-    }
-  }
-}
-
-// AUGMENTS 아래에 인스턴스(실물) 생성
-const augmentManager = new AugmentManager(AUGMENTS);
+    // AUGMENTS 아래에 인스턴스(실물) 생성
+    const augmentManager = new AugmentManager(AUGMENTS);
+    const metaEnforce = new MetaEnforce();
 
     // 이미지 로딩 캐시
     const assetCache = {
@@ -973,7 +1224,7 @@ const augmentManager = new AugmentManager(AUGMENTS);
 
     function resetRun() {
       augmentManager.resetForNewRun();
-      /* state.world = { ...WORLD };
+      state.world = { ...WORLD };
       state.player = createPlayer(state.selectedClassId);
       state.enemies = [];
       state.xpNodes = [];
@@ -998,7 +1249,7 @@ const augmentManager = new AugmentManager(AUGMENTS);
 
       // 카메라 초기값
       state.camera.x = clamp(state.player.x - canvas.width / 2, 0, state.world.w - canvas.width);
-      state.camera.y = clamp(state.player.y - canvas.height / 2, 0, state.world.h - canvas.height); */
+      state.camera.y = clamp(state.player.y - canvas.height / 2, 0, state.world.h - canvas.height);
     }
 
     // =========================================================
@@ -1147,7 +1398,7 @@ const augmentManager = new AugmentManager(AUGMENTS);
         card.addEventListener('click', () => {
           state.selectedClassId = c.id;
           renderClassCards();
-    syncSettingsUIFromState();
+          syncSettingsUIFromState();
         });
         classGrid.appendChild(card);
       }
@@ -1166,6 +1417,7 @@ const augmentManager = new AugmentManager(AUGMENTS);
     document.getElementById('restartBtn').addEventListener('click', () => {
       gameOverOverlay.classList.remove('show');
       resetRun();
+      console.log('resetRun OK', state.mode, !!state.player, state.enemies.length, state.xpNodes.length);
     });
 
     document.getElementById('backToTitleBtn').addEventListener('click', () => {
@@ -1210,7 +1462,7 @@ const augmentManager = new AugmentManager(AUGMENTS);
           </div>
         `;
         btn.addEventListener('click', () => {
-          aug.apply(aug, state);
+          augmentManager.apply(aug, state);
           state.paused = false;
           augmentOverlay.classList.remove('show');
           state.ui.pendingAugments = [];
@@ -1226,7 +1478,7 @@ const augmentManager = new AugmentManager(AUGMENTS);
       const p = state.player;
       const time = state.time.elapsed.toFixed(1);
       goMessage.textContent =
-`생존 시간: ${time}초
+        `생존 시간: ${time}초
 레벨: ${p.level}
 획득 경험치 총량: ${Math.floor(p.totalXp || 0)}
 캐릭터: ${p.emoji} ${p.name}
@@ -1584,10 +1836,10 @@ const augmentManager = new AugmentManager(AUGMENTS);
 
       // 이동 벡터 계산
       let mx = 0, my = 0;
-      if (isMoveLeft())  mx -= 1;
+      if (isMoveLeft()) mx -= 1;
       if (isMoveRight()) mx += 1;
-      if (isMoveUp())    my -= 1;
-      if (isMoveDown())  my += 1;
+      if (isMoveUp()) my -= 1;
+      if (isMoveDown()) my += 1;
 
       if (mx !== 0 || my !== 0) {
         const len = Math.hypot(mx, my);
@@ -1683,7 +1935,7 @@ const augmentManager = new AugmentManager(AUGMENTS);
         e.y = clamp(e.y, e.r, state.world.h - e.r);
 
         // 접촉 피격
-        if (circleHit({x:p.x, y:p.y, r:p.r - 2}, e)) {
+        if (circleHit({ x: p.x, y: p.y, r: p.r - 2 }, e)) {
           if (p.canBeHit) {
             p.hp -= e.damage;
             p.invulnTimer = p.postHitInvuln;
@@ -1735,7 +1987,7 @@ const augmentManager = new AugmentManager(AUGMENTS);
         }
 
         // 획득
-        if (circleHit({x:p.x, y:p.y, r:p.r + 2}, xpn)) {
+        if (circleHit({ x: p.x, y: p.y, r: p.r + 2 }, xpn)) {
           gainXP(xpn.value);
           emitRing(xpn.x, xpn.y, 'rgba(239,68,68,0.35)', 28, 0.16, 3);
           state.xpNodes.splice(i, 1);
@@ -1850,13 +2102,13 @@ const augmentManager = new AugmentManager(AUGMENTS);
       if (state.paused && state.mode === 'playing' && !augmentOverlay.classList.contains('show') && !settingsOverlay.classList.contains('show')) {
         ctx.save();
         ctx.fillStyle = 'rgba(2,6,23,0.28)';
-        ctx.fillRect(0,0,canvas.width,canvas.height);
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
         ctx.fillStyle = '#fff';
         ctx.font = 'bold 28px sans-serif';
         ctx.textAlign = 'center';
-        ctx.fillText('일시정지', canvas.width/2, canvas.height/2);
+        ctx.fillText('일시정지', canvas.width / 2, canvas.height / 2);
         ctx.font = '14px sans-serif';
-        ctx.fillText('설정 버튼 또는 톱니바퀴로 설정창 열기', canvas.width/2, canvas.height/2 + 24);
+        ctx.fillText('설정 버튼 또는 톱니바퀴로 설정창 열기', canvas.width / 2, canvas.height / 2 + 24);
         ctx.restore();
       }
     }
@@ -1865,7 +2117,7 @@ const augmentManager = new AugmentManager(AUGMENTS);
       // 기본 바탕
       ctx.save();
       ctx.fillStyle = '#0b1020';
-      ctx.fillRect(0,0,canvas.width,canvas.height);
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
 
       // 그리드 (카메라 이동 확인용)
       if (state.settings.showGrid) {
@@ -2056,9 +2308,9 @@ const augmentManager = new AugmentManager(AUGMENTS);
 
       // 캐릭터별 색/실루엣 차이
       const palette = {
-        wizard:   { body:'#7c3aed', trim:'#c4b5fd', head:'#f8fafc' },
-        swordsman:{ body:'#334155', trim:'#94a3b8', head:'#f8fafc' },
-        rogue:    { body:'#0f766e', trim:'#5eead4', head:'#f8fafc' },
+        wizard: { body: '#7c3aed', trim: '#c4b5fd', head: '#f8fafc' },
+        swordsman: { body: '#334155', trim: '#94a3b8', head: '#f8fafc' },
+        rogue: { body: '#0f766e', trim: '#5eead4', head: '#f8fafc' },
       }[p.classId];
 
       // 몸통
@@ -2346,4 +2598,5 @@ const augmentManager = new AugmentManager(AUGMENTS);
     //   처럼 처리하면 자연스럽게 확장 가능.
   </script>
 </body>
+
 </html>
